@@ -756,6 +756,14 @@ function downloadScorecardPDF() {
 // A denial = Outcome "Denied", or a blank Outcome (Michelle's decision
 // 2026-11-25, matching the dashboard tab).
 const DENIALS_CSV_URL = 'https://pp10day.netlify.app/AEP%20RFIs%20Denials.csv';
+// Rows whose Denial Reason (source column M) is "UHC SAR/Crosswalk Dupe" are
+// dropped at load, so they never count anywhere on the page (Michelle,
+// 2026-11-25). Case and spacing are ignored.
+const EXCLUDED_DENIAL_REASONS = ['uhc sar/crosswalk dupe'];
+function isExcludedDenialReason(re) {
+  const x = String(re||'').toLowerCase().replace(/\s*\/\s*/g, '/').replace(/\s+/g, ' ').trim();
+  return EXCLUDED_DENIAL_REASONS.includes(x);
+}
 function isDenialOutcome(o) { const x = String(o||'').trim().toLowerCase(); return x === 'denied' || x === ''; }
 function parseDenialDateStr(s) {
   const t = String(s||'').trim(); if (!t) return null;
@@ -793,7 +801,7 @@ window.loadDenialsCsv = function() {
           effDate: parseDenialDateStr(r[iF]),
           subDate: iS >= 0 ? parseDenialDateStr(r[iS]) : null
         };
-      }).filter(r => r.ag);
+      }).filter(r => r.ag && !isExcludedDenialReason(r.re));
       window._denialCsvRows = out;
       return out;
     })
