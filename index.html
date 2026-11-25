@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolicyPoint — Cancellations Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #222; display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: 220px; min-width: 220px; background: #1a2744; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 100; }
+  .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-logo .policy { color: #fff; font-size: 20px; font-weight: 700; }
+  .sidebar-logo .point  { color: #f5a623; font-size: 20px; font-weight: 700; }
+  .sidebar-logo .sub    { color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 3px; }
+  .sb-section { padding: 16px 16px 4px; }
+  .sb-section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+  .sb-label { font-size: 11px; color: rgba(255,255,255,0.65); margin-bottom: 5px; margin-top: 10px; }
+  .sb-select { width: 100%; padding: 8px 28px 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-size: 12px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.45)'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; cursor: pointer; }
+  .sb-select:focus { outline: none; border-color: #f5a623; }
+  .sb-select option { background: #1a2744; color: #fff; }
+  .align-seg { display: flex; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 2px; }
+  .align-seg button { flex: 1; border: 0; background: transparent; color: rgba(255,255,255,0.7); font-size: 11.5px; padding: 6px 4px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  .align-seg button.active { background: #f5a623; color: #1a2744; font-weight: 600; }
+  .align-hint { font-size: 10.5px; color: rgba(255,255,255,0.5); margin-top: 6px; line-height: 1.35; }
+  .period-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 2px; }
+  .period-btn { padding: 7px 4px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); background: transparent; color: rgba(255,255,255,0.65); font-size: 11px; cursor: pointer; text-align: center; transition: all 0.15s; }
+  .period-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .period-btn.active { background: #f5a623; border-color: #f5a623; color: #fff; font-weight: 700; }
+  .period-btn.full { grid-column: 1 / -1; }
+  .custom-dates { display: none; margin-top: 6px; }
+  .custom-dates.visible { display: block; }
+  .sb-input { width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-size: 12px; margin-bottom: 5px; }
+  .sb-input:focus { outline: none; border-color: #f5a623; }
+  .sb-input::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; }
+  .sb-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 6px 0; }
+  .btn-reset { margin: 10px 16px 20px; width: calc(100% - 32px); padding: 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.75); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .btn-reset:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; min-height: 100vh; }
+  .topbar { background: #fff; border-bottom: 1px solid #e8eaf0; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-title { font-size: 16px; font-weight: 700; color: #1a2744; }
+  .topbar-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .last-updated { font-size: 11px; color: #bbb; }
+
+  /* OVERALL SUMMARY */
+  .overall-summary { padding: 22px 28px 0; }
+  .overall-summary-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; border-bottom: 2px solid #1a2744; padding-bottom: 8px; }
+  .overall-summary-title { font-size: 1.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #1a2744; }
+  .overall-summary-sub { font-size: 10.5px; color: #999; }
+  .os-charts-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .os-chart-card { background: #fff; border-radius: 8px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); flex: 1; min-width: 220px; }
+  .os-chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .os-chart-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #7b8a9e; }
+  .os-chart-trend { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
+  .os-chart-trend .os-card-arrow.flat { color: #aaa; }
+  .os-bars { display: flex; align-items: flex-end; gap: 10px; }
+  .os-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .os-bar-value { font-size: 11px; font-weight: 700; color: #1a2744; margin-bottom: 2px; white-space: nowrap; }
+  .os-bar-sub { font-size: 9px; color: #999; margin-bottom: 4px; white-space: nowrap; }
+  .os-bar { width: 100%; max-width: 40px; border-radius: 4px 4px 0 0; background: #1a2744; }
+  .os-bar.current { background: #f5a623; }
+  .os-bar.next { background: #2e86ab; }
+  .os-bar-month { font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; color: #999; font-weight: 700; margin-top: 6px; white-space: nowrap; }
+  .os-card-arrow { font-size: 12px; font-weight: 700; }
+  .os-card-arrow.up-good, .os-card-arrow.down-good { color: #1e8449; }
+  .os-card-arrow.up-bad, .os-card-arrow.down-bad { color: #c0392b; }
+  .os-card-arrow.flat { color: #aaa; }
+
+  /* STATS */
+  .stats-row { display: flex; gap: 16px; padding: 22px 28px 0; flex-wrap: wrap; }
+  .stat-card { background: #fff; border-radius: 8px; padding: 18px 22px; flex: 1; min-width: 130px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-top: 3px solid #1a2744; }
+  .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #999; font-weight: 700; margin-bottom: 6px; }
+  .stat-value { font-size: 30px; font-weight: 700; color: #1a2744; }
+
+  /* CONTENT */
+  .content { padding: 22px 28px 40px; }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+  .chart-card { background: #fff; border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+  .chart-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1a2744; margin-bottom: 14px; }
+
+  /* BAR ROWS */
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bar-rank { font-size: 10px; font-weight: 700; color: #ccc; width: 16px; text-align: right; flex-shrink: 0; }
+  .bar-label { font-size: 11px; color: #444; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-label.wide { width: 130px; }
+  .bar-label.med  { width: 110px; }
+  .bar-bg { flex: 1; background: #eef0f5; border-radius: 3px; height: 11px; overflow: hidden; }
+  .bar-fill { height: 11px; border-radius: 3px; }
+  .bar-fill.navy   { background: #1a2744; }
+  .bar-fill.orange { background: #f5a623; }
+  .bar-fill.teal   { background: #2e86ab; }
+  .bar-count { font-size: 11px; font-weight: 700; color: #1a2744; width: 28px; text-align: right; flex-shrink: 0; }
+  .no-data { color: #bbb; font-size: 12px; padding: 10px 0; }
+
+  /* TABLE */
+  .section-header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1a2744; }
+  .result-count { font-size: 11px; color: #aaa; }
+  .table-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  thead { background: #1a2744; color: #fff; }
+  thead th { padding: 10px 11px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+  thead th:hover { background: #223166; }
+  .sort-icon { margin-left: 3px; opacity: 0.4; font-size: 8px; }
+  thead th.sorted .sort-icon { opacity: 1; }
+  tbody tr { border-bottom: 1px solid #f0f2f5; }
+  tbody tr:hover { background: #f7f9fc; }
+  tbody td { padding: 7px 11px; vertical-align: top; }
+  .td-wrap { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+  .td-tags { white-space: normal; max-width: 180px; }
+  .tag { display: inline-block; border-radius: 3px; padding: 1px 5px; font-size: 10px; margin: 1px 2px 1px 0; }
+  .tag-default { background: #eef0f5; color: #444; }
+  .tag-red    { background: #fdecea; color: #c0392b; }
+  .tag-orange { background: #fef3e2; color: #d68910; }
+  .link-btn { color: #1a2744; font-weight: 600; text-decoration: none; font-size: 10px; background: #eef0f5; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .link-btn:hover { background: #1a2744; color: #fff; }
+  .badge-y { background: #fdecea; color: #c0392b; border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 700; display: inline-block; }
+  .badge-n { background: #eafaf1; color: #1e8449; border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 700; display: inline-block; }
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid #f0f2f5; font-size: 11px; color: #999; }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btns button { padding: 4px 9px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .page-btns button:hover { background: #eef0f5; }
+  .page-btns button.active { background: #1a2744; color: #fff; border-color: #1a2744; }
+  .page-btns button:disabled { opacity: 0.35; cursor: default; }
+  .loading { text-align: center; padding: 50px; color: #bbb; font-size: 13px; }
+  .error-msg { text-align: center; padding: 36px; color: #c0392b; font-size: 13px; }
+
+
+  /* DOWNLOAD BUTTONS */
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .card-header .chart-title { margin-bottom: 0; }
+  .dl-btns { display: flex; gap: 5px; }
+  .dl-btn { padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; gap: 3px; transition: opacity 0.15s; }
+  .dl-btn:hover { opacity: 0.82; }
+  .dl-btn.png { background: #eef0f5; color: #1a2744; }
+  .dl-btn.pdf { background: #f5a623; color: #fff; }
+  .dl-btn.csv { background: #eef0f5; color: #1a2744; }
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; justify-content: space-between; }
+  .section-header-left { display: flex; align-items: center; gap: 10px; }
+
+  /* AGENT SUMMARY TABLE */
+  .agent-summary-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 24px; }
+  .agent-summary-card table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .agent-summary-card thead { background: #1a2744; color: #fff; }
+  .agent-summary-card thead th { padding: 10px 14px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+  .agent-summary-card thead th.num { text-align: center; }
+  .agent-summary-card tbody tr { border-bottom: 1px solid #f0f2f5; }
+  .agent-summary-card tbody tr:hover { background: #f7f9fc; }
+  .agent-summary-card tbody td { padding: 8px 14px; }
+  .agent-summary-card tbody td.num { text-align: center; font-weight: 700; color: #1a2744; }
+  .agent-summary-card tbody td.num.risk { color: #c0392b; }
+  .ms-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; justify-content: space-between; flex-wrap: wrap; }
+  .ms-hint { font-size: 11px; color: #7b8a9e; margin-right: 6px; }
+  .ms-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow-x: auto; margin-bottom: 24px; }
+  .ms-card table { width: 100%; border-collapse: collapse; font-size: 11.5px; min-width: 760px; }
+  .ms-card thead { background: #1a2744; color: #fff; }
+  .ms-card thead th { padding: 10px 14px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; white-space: nowrap; }
+  .ms-card th.num, .ms-card td.num { text-align: right; }
+  .ms-card tbody tr { border-bottom: 1px solid #f0f2f5; cursor: pointer; }
+  .ms-card tbody tr:hover { background: #f7f9fc; }
+  .ms-card tbody tr.ms-sel { background: #fff6e5; box-shadow: inset 3px 0 0 #f5a623; }
+  .ms-card td { padding: 8px 14px; }
+  .ms-card td.num { font-weight: 700; color: #1a2744; }
+  .ms-card td.num.ms-red { color: #c0392b; }
+  .ms-card .ms-frac { font-weight: 400; color: #7b8a9e; font-size: 10.5px; margin-left: 3px; }
+  .ms-card tfoot td { border-top: 2px solid #e3e7ee; font-weight: 700; background: #fafbfd; }
+  .rk-summary { padding: 0 28px; margin: 14px 0 4px; }
+  .rk-banner { display: none; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border-left: 4px solid #c0392b; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 10px 14px; margin-bottom: 12px; font-size: 12.5px; color: #1a2744; }
+  .rk-banner b.rk-tiername { color: #c0392b; }
+  .rk-banner button { border: 1px solid #e3e7ee; background: #fff; border-radius: 6px; font-size: 11.5px; padding: 4px 10px; color: #1a2744; cursor: pointer; }
+  .rk-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .rk-kpi { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 12px 16px; }
+  .rk-kpi .rk-k { font-size: 10px; color: #7b8a9e; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .rk-kpi .rk-v { font-size: 22px; font-weight: 700; color: #1a2744; margin-top: 4px; }
+  .rk-kpi .rk-d { font-size: 11px; color: #7b8a9e; }
+  .rk-section-header { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; justify-content: space-between; flex-wrap: wrap; }
+  .rk-ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .rk-ctl-label { font-size: 11px; color: #7b8a9e; }
+  .rk-seg { display: flex; border: 1px solid #e3e7ee; border-radius: 6px; overflow: hidden; background: #fff; }
+  .rk-seg button { border: 0; background: #fff; padding: 6px 10px; font-size: 11.5px; cursor: pointer; color: #1a2744; font-family: inherit; }
+  .rk-seg button.on { background: #1a2744; color: #fff; font-weight: 600; }
+  .rk-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow-x: auto; margin-bottom: 24px; }
+  .rk-card table { width: 100%; border-collapse: collapse; font-size: 11.5px; min-width: 900px; }
+  .rk-card thead { background: #1a2744; color: #fff; }
+  .rk-card thead th { padding: 10px 12px; text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; white-space: nowrap; }
+  .rk-card th.num, .rk-card td.num { text-align: right; }
+  .rk-card td { padding: 7px 12px; border-bottom: 1px solid #f0f2f5; }
+  .rk-card td.num { font-weight: 700; color: #1a2744; }
+  .rk-card td.rk-key { background: #f7f9fc; }
+  .rk-card td.rk-zero { color: #c0392b; }
+  .rk-card tr.rk-grp td { background: #fafbfd; font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: #7b8a9e; }
+  .rk-pill { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 10.5px; font-weight: 600; }
+  .rk-pill.High { background: #fdecea; color: #c0392b; }
+  .rk-pill.Watch { background: #fff6e5; color: #a86a00; }
+  .rk-pill.Low { background: #eaf6ee; color: #1f7a45; }
+  .rk-more { display: flex; justify-content: center; padding: 10px; }
+  .rk-more button { border: 1px solid #e3e7ee; background: #fff; border-radius: 6px; font-size: 11.5px; padding: 5px 12px; color: #1a2744; cursor: pointer; }
+  .rk-excl { font-size: 11.5px; color: #7b8a9e; padding: 8px 12px 12px; line-height: 1.5; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div><span class="policy">Policy</span><span class="point">Point</span></div>
+    <div class="sub">Cancellations</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-title">Date Filter</div>
+    <div class="sb-label">Period</div>
+    <div class="period-btns">
+      <button class="period-btn active" data-period="month" onclick="setPeriod('month')">This Month</button>
+      <button class="period-btn" data-period="nextmonth" onclick="setPeriod('nextmonth')">Next Month</button>
+      <button class="period-btn" data-period="prevmonth" onclick="setPeriod('prevmonth')">Prev Month</button>
+      <button class="period-btn" data-period="aep" onclick="setPeriod('aep')">AEP</button>
+      <button class="period-btn" data-period="oep" onclick="setPeriod('oep')">OEP</button>
+      <button class="period-btn" data-period="sep" onclick="setPeriod('sep')">SEP</button>
+      <button class="period-btn" data-period="rolling3m" onclick="setPeriod('rolling3m')">Rolling 3M</button>
+      <button class="period-btn full" data-period="custom" onclick="setPeriod('custom')">Custom</button>
+    </div>
+    <div class="custom-dates" id="customDates">
+      <div class="sb-label" style="margin-top:8px">From</div>
+      <input type="date" class="sb-input" id="dateFrom" onchange="applyFilters()">
+      <div class="sb-label">To</div>
+      <input type="date" class="sb-input" id="dateTo" onchange="applyFilters()">
+    </div>
+  </div>
+  <hr class="sb-divider">
+  <div class="sb-section">
+    <div class="sb-section-title">Filters</div>
+    <div class="sb-label">Manager Alignment</div>
+    <div class="align-seg" id="alignSeg" role="group" aria-label="Manager alignment">
+      <button type="button" data-align="current" class="active" onclick="setAlignment('current')">Current</button>
+      <button type="button" data-align="historical" onclick="setAlignment('historical')">Historical</button>
+    </div>
+    <div class="align-hint" id="alignHint">Managers from today's roster. An agent's full history follows their current manager.</div>
+    <div class="sb-label">Manager</div>
+    <select class="sb-select" id="sbManager" onchange="applyFilters()"><option value="">All Managers</option></select>
+    <div class="sb-label">Agent</div>
+    <select class="sb-select" id="sbAgent" onchange="applyFilters()"><option value="">All Agents</option></select>
+    <div class="sb-label">Risk Tier</div>
+    <select class="sb-select" id="sbTier" onchange="applyFilters()">
+      <option value="">All tiers</option>
+      <option value="High">High risk</option>
+      <option value="Watch">Watch</option>
+      <option value="Low">Low risk</option>
+    </select>
+    <div class="align-hint">Narrows the whole report to agents in that tier of the Agent Risk Ranking.</div>
+    <div class="sb-label">Carrier</div>
+    <select class="sb-select" id="sbCarrier" onchange="applyFilters()"><option value="">All Carriers</option></select>
+    <div class="sb-label">Compliance Risk</div>
+    <select class="sb-select" id="sbCompliance" onchange="applyFilters()">
+      <option value="">All</option>
+      <option value="Y">Yes</option>
+      <option value="N">No</option>
+    </select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">&#8635; Reset Filters</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Cancellations</div>
+      <div class="topbar-sub">Live data · Google Sheets</div>
+    </div>
+    <div class="last-updated" id="lastUpdated"></div>
+
+    <div id="report-export-btn-wrap" style="display:flex;gap:8px;align-items:center;">
+      <button id="export-png-btn" onclick="exportReport('png')"
+        style="background:#1a2340;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;letter-spacing:0.04em;">
+        &#8595; PNG Report
+      </button>
+      <button id="export-pdf-btn" onclick="exportReport('pdf')"
+        style="background:#f5a623;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;letter-spacing:0.04em;">
+        &#8595; PDF Report
+      </button>
+    </div></div>
+
+  <div class="rk-summary" id="rkSummary">
+    <div class="rk-banner" id="rkBanner"></div>
+    <div class="rk-kpis">
+      <div class="rk-kpi"><div class="rk-k">Agents</div><div class="rk-v" id="rkKA">—</div><div class="rk-d" id="rkKAd">ranked</div></div>
+      <div class="rk-kpi"><div class="rk-k">Cancellations</div><div class="rk-v" id="rkKC">—</div><div class="rk-d">for these agents, in period</div></div>
+      <div class="rk-kpi"><div class="rk-k">Reviews Done</div><div class="rk-v" id="rkKR">—</div><div class="rk-d" id="rkKRd">—</div></div>
+      <div class="rk-kpi"><div class="rk-k">Agents With No Review</div><div class="rk-v" id="rkKN">—</div><div class="rk-d">had cancellations, 0 reviews</div></div>
+    </div>
+  </div>
+
+  <div class="overall-summary" id="overallSummary">
+    <div class="overall-summary-header">
+      <div class="overall-summary-title">Overall Summary</div>
+      <div class="overall-summary-sub">5-month view by effective date · not affected by date filter</div>
+    </div>
+    <div id="overallSummaryBody"><div class="loading">Loading…</div></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card" style="border-top-color:#f5a623"><div class="stat-label">Total Cancellations</div><div class="stat-value" id="statCancellations">—</div></div>
+    <div class="stat-card"><div class="stat-label">Total Reviews</div><div class="stat-value" id="statTotal">—</div></div>
+    <div class="stat-card"><div class="stat-label">Compliance Risk</div><div class="stat-value" id="statFalse">—</div></div>
+    <div class="stat-card"><div class="stat-label">Founded</div><div class="stat-value" id="statNoFault">—</div></div>
+    <div class="stat-card"><div class="stat-label">Needs Missed</div><div class="stat-value" id="statNeedsMissed">—</div></div>
+    <div class="stat-card"><div class="stat-label">Returned to Prev Plan</div><div class="stat-value" id="statReturned">—</div></div>
+  </div>
+
+  <div class="content">
+    <div class="charts-row">
+      <div class="chart-card" id="chartCard0">
+        <div class="card-header"><div class="chart-title">Trends — Top 10 Findings</div><div class="dl-btns"><button class="dl-btn png" onclick="downloadChartPNG('chartCard0','findings')">&#8595; PNG</button><button class="dl-btn pdf" onclick="downloadChartPDF('chartCard0','Trends — Top 10 Findings')">&#8595; PDF</button></div></div>
+        <div id="trendsChart"><div class="loading">Loading…</div></div>
+      </div>
+      <div class="chart-card" id="chartCard1">
+        <div class="card-header"><div class="chart-title">Needs Missed — Top 10</div><div class="dl-btns"><button class="dl-btn png" onclick="downloadChartPNG('chartCard1','needs-missed')">&#8595; PNG</button><button class="dl-btn pdf" onclick="downloadChartPDF('chartCard1','Needs Missed — Top 10')">&#8595; PDF</button></div></div>
+        <div id="needsMissedChart"><div class="loading">Loading…</div></div>
+      </div>
+      <div class="chart-card" id="chartCard2">
+        <div class="card-header"><div class="chart-title">Returned to Prev Plan by Carrier</div><div class="dl-btns"><button class="dl-btn png" onclick="downloadChartPNG('chartCard2','returned-by-carrier')">&#8595; PNG</button><button class="dl-btn pdf" onclick="downloadChartPDF('chartCard2','Returned to Prev Plan by Carrier')">&#8595; PDF</button></div></div>
+        <div id="returnedChart"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
+
+    <div class="ms-section-header">
+      <div class="section-header-left"><div class="section-title">Manager Scorecard</div><div class="result-count" id="msCount"></div></div>
+      <div class="dl-btns"><span class="ms-hint">Click a row to filter by manager</span><button class="dl-btn csv" onclick="downloadScorecardCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadScorecardPDF()">&#8595; PDF</button></div>
+    </div>
+    <div class="ms-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Manager</th>
+            <th class="num">Reviews</th>
+            <th class="num">Fault Rate</th>
+            <th class="num">Compliance Risk</th>
+            <th class="num">Returned</th>
+            <th class="num">At Fault Coached</th>
+            <th>Top Finding</th>
+          </tr>
+        </thead>
+        <tbody id="msBody"><tr><td colspan="7" style="text-align:center;padding:20px;color:#bbb">Loading…</td></tr></tbody>
+        <tfoot id="msFoot"></tfoot>
+      </table>
+    </div>
+
+    <div class="section-header">
+      <div class="section-header-left"><div class="section-title">Agent Summary</div><div class="result-count" id="agentSummaryCount"></div></div>
+      <div class="dl-btns"><button class="dl-btn csv" onclick="downloadAgentCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadAgentPDF()">&#8595; PDF</button></div>
+    </div>
+    <div class="agent-summary-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Manager</th>
+            <th class="num">Total Cancellations</th>
+            <th class="num">Total Reviewed</th>
+            <th class="num">Founded</th>
+            <th class="num">Compliance Risk</th>
+          </tr>
+        </thead>
+        <tbody id="agentSummaryBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-header">
+      <div class="section-header-left"><div class="section-title">All Reviews</div><div class="result-count" id="resultCount"></div></div>
+      <div class="dl-btns"><button class="dl-btn csv" onclick="downloadReviewsCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadReviewsPDF()">&#8595; PDF</button></div>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"><tr><td colspan="13" class="loading">Loading data…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pageInfo"></span>
+        <div class="page-btns" id="pageBtns"></div>
+      </div>
+    </div>
+
+    <div class="rk-section-header">
+      <div class="section-header-left"><div class="section-title">Agent Risk Ranking</div><div class="result-count" id="rkCount"></div></div>
+      <div class="rk-ctl">
+        <span class="rk-ctl-label">Rank by</span>
+        <div class="rk-seg" id="rkRankBy" role="group" aria-label="Rank by">
+          <button type="button" data-k="cd" class="on" onclick="setRankBy('cd')">Cancel + Deny %</button><button type="button" data-k="cp" onclick="setRankBy('cp')">Cancel %</button><button type="button" data-k="dp" onclick="setRankBy('dp')">Deny %</button>
+        </div>
+        <div class="dl-btns"><button class="dl-btn csv" onclick="downloadRiskCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadRiskPDF()">&#8595; PDF</button></div>
+      </div>
+    </div>
+    <div class="rk-card">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Rank</th>
+            <th>Agent</th>
+            <th>Manager</th>
+            <th class="num">Apps</th>
+            <th class="num">Cancels</th>
+            <th class="num">Cancel %</th>
+            <th class="num">Denials</th>
+            <th class="num">Deny %</th>
+            <th class="num">Cancel + Deny %</th>
+            <th class="num">Reviews Done</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+        <tbody id="rkBody"><tr><td colspan="11" style="text-align:center;padding:20px;color:#bbb">Loading…</td></tr></tbody>
+      </table>
+      <div class="rk-more" id="rkMore"><button type="button" id="rkMoreBtn" onclick="toggleRiskMore()"></button></div>
+      <div class="rk-excl" id="rkExcl"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '1fY3gZm73yyKmDoj0OrnVPz-jnjf76L2YlWxrvhaoTK8';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRA00uQ8pNJCGolOCYlQ3ox1uNVMvH3es6Q0Ue0Fu3RsdQoksgDNOtCVQXnYTaYHaxTKLCtu-VLumM/pub?gid=0&single=true&output=csv';
+const PAGE_SIZE = 25;
+let allRows = [], filteredRows = [], currentPage = 1, sortCol = -1, sortAsc = true, activePeriod = 'month';
+let cancelRows = [], cancelLoaded = false;
+const C = { AGENT:0,MANAGER:1,AMS:2,APP_DATE:3,EFF_DATE:4,CARRIER:5,FINDINGS:6,NEEDS:7,FALSE_CLAIMS:8,NEEDS_MISSED:9,MORE_PLANS:10,NOTES:11,RETURNED:12,PREV_PLAN:13,PLAN_SOLD:14,CURRENT_MARX:15,FORM_LINK:16 };
+// Cancellations master tab (gid 762489755): Member, Phone, MBI, Carrier, State, Agent, App Submit Date, Effective Date, Date Added, Reviewed
+const CC = { CARRIER:3, AGENT:5, APP_DATE:6, EFF_DATE:7 };
+const CANCEL_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/1fY3gZm73yyKmDoj0OrnVPz-jnjf76L2YlWxrvhaoTK8/gviz/tq?tqx=out:csv&gid=762489755';
+const CANCEL_PUB_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRA00uQ8pNJCGolOCYlQ3ox1uNVMvH3es6Q0Ue0Fu3RsdQoksgDNOtCVQXnYTaYHaxTKLCtu-VLumM/pub?gid=762489755&single=true&output=csv';
+// Roster tab (gid 1704502235): maps Agent -> Manager. Columns auto-detected by header name.
+// Now the shared PolicyPoint roster (same tab BAT and Compliance read). Previously gid 1704502235 in this report's own workbook.
+const ROSTER_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/1JhD022WkYR1HdRwjrSHxYFPNzUAiZKy3gvnz9dON29U/gviz/tq?tqx=out:csv&gid=1374190330';
+let rosterReady = false;
+let rosterByKey = {};   // exact normalized token-key -> manager
+let rosterList = [];    // [{ norm, manager }] for fuzzy fallback
+
+// ── MANAGER ALIGNMENT ─────────────────────────────────────────
+// Current    = everything goes to the agent's manager on the live roster.
+//              Agents missing from the roster show "Not on roster".
+// Historical = rows that carry a manager keep it (review sheet column B,
+//              Denials sheet Manager). Sheets with no manager column
+//              (Cancellations master, Apps Submitted) use the agent's manager
+//              on their most recent review row, then the roster. Anyone
+//              still without a manager shows "Unassigned".
+const NOT_ON_ROSTER = 'Not on roster';
+const UNASSIGNED = 'Unassigned';
+let ALIGN_MODE = 'current';
+let agentMgrMemo = {}, histLatest = null;
+function rosterMgr(agent) {
+  if (!agent || !rosterReady) return '';
+  if (agent in agentMgrMemo) return agentMgrMemo[agent];
+  return agentMgrMemo[agent] = managerForAgent(agent);
+}
+function buildHistLatest() {
+  histLatest = {};
+  allRows.forEach(r => {
+    const m = String(r._srcMgr !== undefined ? r._srcMgr : r[C.MANAGER] || '').trim();
+    if (!m || /^not found$/i.test(m)) return;
+    const k = nameKey(r[C.AGENT]); if (!k) return;
+    const d = parseDate(r[C.APP_DATE]) || parseDate(r[C.EFF_DATE]);
+    const cur = histLatest[k];
+    if (!cur || (d && (!cur.d || d >= cur.d))) histLatest[k] = { m, d };
+  });
+}
+// Manager for an agent on a sheet with no manager column.
+function agentMgr(agent) {
+  if (!agent) return '';
+  if (ALIGN_MODE === 'current') return rosterMgr(agent) || (rosterReady ? NOT_ON_ROSTER : '');
+  if (!histLatest) buildHistLatest();
+  const h = histLatest[nameKey(agent)];
+  return (h && h.m) || rosterMgr(agent) || (rosterReady ? UNASSIGNED : '');
+}
+// Manager for a row that records its own manager.
+function rowMgr(agent, src) {
+  const own = String(src || '').trim();
+  if (ALIGN_MODE === 'current') return rosterMgr(agent) || (rosterReady ? NOT_ON_ROSTER : own);
+  return own || agentMgr(agent);
+}
+// Review rows are displayed and exported, so their Manager cell is rewritten
+// in place (the sheet value is kept on r._srcMgr).
+function applyAlignment() {
+  allRows.forEach(r => {
+    if (r._srcMgr === undefined) r._srcMgr = r[C.MANAGER];
+    r[C.MANAGER] = rowMgr(r[C.AGENT], r._srcMgr);
+  });
+  histLatest = null;
+  const cur = ALIGN_MODE === 'current';
+  const hint = document.getElementById('alignHint');
+  if (hint) hint.textContent = cur
+    ? "Managers from today's roster. An agent's full history follows their current manager."
+    : 'Managers as recorded on each review (column B), at the time it was logged.';
+  document.querySelectorAll('#alignSeg button').forEach(b => b.classList.toggle('active', b.dataset.align === ALIGN_MODE));
+}
+function setAlignment(mode) {
+  ALIGN_MODE = mode === 'historical' ? 'historical' : 'current';
+  const sel = document.getElementById('sbManager'); if (sel) sel.value = '';
+  applyFilters();
+}
+const HD = ['Agent','Manager','AMS','App Date','Eff. Date','Carrier','Findings','Needs','Compliance Risk','Needs Missed','Returned?','Plan Sold','Form Link'];
+
+// ── MANAGER NAME ALIGNMENT ─────────────────────────────────────
+// Some sheets spell the same manager differently. Treat "John Tellez"
+// as "JT Tellez" so the dropdown lists that manager once and every
+// manager comparison across the report resolves to the same person.
+function canonManager(raw) {
+  const s = String(raw||'').trim();
+  if (!s) return '';
+  if (s.toLowerCase() === 'john tellez') return 'JT Tellez';
+  return s;
+}
+
+function parseCSV(text) {
+  // Robust parser that handles quoted fields containing commas and newlines
+  const rows = [];
+  let i = 0;
+  while (i < text.length) {
+    const row = [];
+    // Parse one row
+    while (i < text.length) {
+      let cell = '';
+      if (text[i] === '"') {
+        // Quoted field — may contain commas and newlines
+        i++;
+        while (i < text.length) {
+          if (text[i] === '"' && text[i+1] === '"') { cell += '"'; i += 2; }
+          else if (text[i] === '"') { i++; break; }
+          else { cell += text[i++]; }
+        }
+      } else {
+        // Unquoted field — ends at comma or newline
+        while (i < text.length && text[i] !== ',' && text[i] !== '\n' && text[i] !== '\r') {
+          cell += text[i++];
+        }
+      }
+      row.push(cell.trim());
+      if (text[i] === ',') { i++; continue; }
+      break; // end of row (newline or EOF)
+    }
+    // Skip line ending
+    if (text[i] === '\r') i++;
+    if (text[i] === '\n') i++;
+    if (row.some(c => c)) rows.push(row);
+  }
+  return rows;
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  const m = s.match(/^Date\((\d+),(\d+),(\d+)/); // gviz CSV date format
+  if (m) return new Date(+m[1], +m[2], +m[3]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function getDateRange() {
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  const y = today.getFullYear(), m = today.getMonth();
+  if (activePeriod === 'month')     return [new Date(y,m,1), new Date(y,m+1,0,23,59,59)];
+  if (activePeriod === 'nextmonth') return [new Date(y,m+1,1), new Date(y,m+2,0,23,59,59)];
+  if (activePeriod === 'prevmonth') return [new Date(y,m-1,1), new Date(y,m,0,23,59,59)];
+  if (activePeriod === 'aep')       { const ay = m>=9 ? y : y-1; return [new Date(ay,9,15), new Date(ay,11,7,23,59,59)]; }
+  if (activePeriod === 'oep')       return [new Date(y,0,1), new Date(y,2,31,23,59,59)];
+  if (activePeriod === 'sep')       return [new Date(y,m-3,1), new Date(y,m+1,0,23,59,59)];
+  // Rolling 3M is the last three COMPLETE months, not three months back from today:
+  // on 21 Sep 2026 that is 1 Jun through 31 Aug. Partial months at either end made
+  // month-over-month comparisons misleading.
+  if (activePeriod === 'rolling3m') return [new Date(y,m-3,1), new Date(y,m,0,23,59,59)];
+  if (activePeriod === 'custom')    { const f=document.getElementById('dateFrom').value, t=document.getElementById('dateTo').value; return [f?new Date(f):null, t?new Date(t+'T23:59:59'):null]; }
+  return [null,null];
+}
+
+function setPeriod(p) {
+  activePeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.dataset.period===p));
+  document.getElementById('customDates').classList.toggle('visible', p==='custom');
+  applyFilters();
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── MANAGER SCORECARD ─────────────────────────────────────────
+// One row per manager over the review rows in the selected period, honoring
+// the Agent / Carrier / Compliance filters but NOT the Manager filter, so every
+// manager stays visible and the selected one is highlighted. Manager follows
+// the Current / Historical toggle (r[C.MANAGER] is rewritten by applyAlignment).
+//   Fault rate       = reviews whose Findings are not "No Fault Found" (same rule as Agent Summary "Founded")
+//   Compliance risk  = False Claims/Compliance Risk = Y
+//   Returned         = Returned to Previous Plan = Y
+//   At fault coached = at-fault reviews with Coached (Y/N) = Y, or a Coached On / Coached By entry
+//   Top finding      = most common finding, excluding "No Fault Found"
+// The form's test row (Findings = "TEST") is left out.
+let reviewHeader = [];
+let msRows = [];
+function reviewCol(names, fallback) {
+  const h = reviewHeader.map(x => String(x||'').trim().toLowerCase());
+  for (const n of names) { const i = h.indexOf(n); if (i >= 0) return i; }
+  return fallback;
+}
+function msIsFault(r) {
+  const raw = (r[C.FINDINGS]||'').trim();
+  if (!raw) return false;
+  return !raw.split(',').map(x=>x.trim()).includes('No Fault Found');
+}
+function msYes(v) { return /^y(es)?$/i.test(String(v||'').trim()); }
+function buildManagerScorecard() {
+  const tb = document.getElementById('msBody'); if (!tb) return;
+  const agent = document.getElementById('sbAgent').value;
+  const carrier = document.getElementById('sbCarrier').value;
+  const compliance = document.getElementById('sbCompliance').value;
+  const selected = document.getElementById('sbManager').value;
+  const [dateFrom, dateTo] = getDateRange();
+  const iY = reviewCol(['coached (y/n)','coached'], 17), iOn = reviewCol(['coached on'], 18), iBy = reviewCol(['coached by'], 19);
+  const coached = r => msYes(r[iY]) || !!String(r[iOn]||'').trim() || !!String(r[iBy]||'').trim();
+  const rows = allRows.filter(r => {
+    if (/^test$/i.test((r[C.FINDINGS]||'').trim())) return false;
+    if (!tierAllows(r[C.AGENT])) return false;
+    if (agent && r[C.AGENT]!==agent) return false;
+    if (carrier && canonicalCarrier(r[C.CARRIER])!==carrier) return false;
+    if (compliance && (r[C.FALSE_CLAIMS]||'').trim().toUpperCase()!==compliance) return false;
+    if (dateFrom||dateTo) { const d=parseDate(r[C.EFF_DATE]); if (!d) return false; if (dateFrom&&d<dateFrom) return false; if (dateTo&&d>dateTo) return false; }
+    return true;
+  });
+  const blank = () => ({ n:0, fault:0, risk:0, ret:0, coached:0, findings:{} });
+  const add = (s, r) => {
+    s.n++;
+    const f = msIsFault(r);
+    if (f) { s.fault++; if (coached(r)) s.coached++; }
+    if (msYes(r[C.FALSE_CLAIMS])) s.risk++;
+    if (msYes(r[C.RETURNED])) s.ret++;
+    (r[C.FINDINGS]||'').split(',').map(x=>x.trim()).filter(x => x && x!=='No Fault Found').forEach(x => { s.findings[x]=(s.findings[x]||0)+1; });
+  };
+  const map = {}, total = blank();
+  rows.forEach(r => {
+    const m = canonManager(r[C.MANAGER]) || '(No manager)';
+    if (!map[m]) map[m] = blank();
+    add(map[m], r); add(total, r);
+  });
+  const top = s => { const e = Object.entries(s.findings).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])); return e.length ? e[0][0] : '—'; };
+  const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+  const shape = (name, s) => ({ manager:name, reviews:s.n, faultPct:pct(s.fault,s.n), riskPct:pct(s.risk,s.n), retPct:pct(s.ret,s.n), fault:s.fault, coached:s.coached, coachedPct:pct(s.coached,s.fault), top:top(s) });
+  msRows = Object.entries(map).map(([m,s]) => shape(m,s)).sort((a,b)=>b.reviews-a.reviews||a.manager.localeCompare(b.manager));
+  const msTotal = shape('Total', total);
+  window._msTotal = msTotal;
+  document.getElementById('msCount').textContent = '('+msRows.length+' managers)';
+  const cells = x =>
+      '<td class="num">'+x.reviews+'</td>'
+    + '<td class="num'+(x.faultPct>=50?' ms-red':'')+'">'+x.faultPct+'%</td>'
+    + '<td class="num'+(x.riskPct>=50?' ms-red':'')+'">'+x.riskPct+'%</td>'
+    + '<td class="num">'+x.retPct+'%</td>'
+    + '<td class="num'+(x.fault&&x.coachedPct<25?' ms-red':'')+'">'+x.coachedPct+'%<span class="ms-frac">('+x.coached+'/'+x.fault+')</span></td>'
+    + '<td>'+esc(x.top)+'</td>';
+  if (!msRows.length) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#bbb">No reviews for this period.</td></tr>';
+    document.getElementById('msFoot').innerHTML = '';
+    return;
+  }
+  tb.innerHTML = msRows.map(x =>
+    '<tr data-mgr="'+esc(x.manager)+'"'+(selected && x.manager===selected ? ' class="ms-sel"' : '')+'><td>'+esc(x.manager)+'</td>'+cells(x)+'</tr>'
+  ).join('');
+  document.getElementById('msFoot').innerHTML = '<tr><td>Total</td>'+cells(msTotal)+'</tr>';
+}
+// Row click sets the Manager filter; clicking the selected row clears it.
+document.addEventListener('click', e => {
+  const tr = e.target.closest && e.target.closest('#msBody tr[data-mgr]');
+  if (!tr) return;
+  const m = tr.getAttribute('data-mgr'), sel = document.getElementById('sbManager');
+  if (m === '(No manager)') return;
+  if (sel.value === m) { sel.value = ''; }
+  else {
+    if (![...sel.options].some(o => o.value === m)) { const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); }
+    sel.value = m;
+  }
+  applyFilters();
+});
+function scorecardExportRows() {
+  const fmt = x => [x.manager, x.reviews, x.faultPct+'%', x.riskPct+'%', x.retPct+'%', x.coachedPct+'% ('+x.coached+'/'+x.fault+')', x.top];
+  return msRows.map(fmt).concat(window._msTotal && msRows.length ? [fmt(window._msTotal)] : []);
+}
+const MS_HEADERS = ['Manager','Reviews','Fault Rate','Compliance Risk','Returned','At Fault Coached','Top Finding'];
+function downloadScorecardCSV() {
+  const q = v => '"' + String(v).replace(/"/g,'""') + '"';
+  const csv = [MS_HEADERS.map(q).join(','), ...scorecardExportRows().map(r => r.map(q).join(','))].join('\n');
+  triggerDownload(csv, 'text/csv', 'manager-scorecard.csv');
+}
+function downloadScorecardPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  pdf.setFontSize(13); pdf.setTextColor(26, 39, 68);
+  pdf.text('Manager Scorecard', 40, 40);
+  pdf.autoTable({ head: [MS_HEADERS], body: scorecardExportRows(), startY: 55, styles: { fontSize: 9 }, headStyles: { fillColor: [26,39,68] }, alternateRowStyles: { fillColor: [247,249,252] } });
+  pdf.save('manager-scorecard.pdf');
+}
+
+// ── DENIALS SOURCE ────────────────────────────────────────────
+// AEP RFIs_Denials_V2.xlsx (Box "Daily Reporting"), sheet "Denials". The
+// auto-deploy (deploy.ps1 Convert-DenialsXlsx, 7:20 / 8:20 AM) converts the
+// newest copy to CSV and publishes it on pp10day each morning, the same file
+// the dashboard's Cancellations tab reads. Replaced the Applications/Denials
+// Google Sheet (12DOVFfT…, gid 0) on 2026-11-25.
+// A denial = Outcome "Denied", or a blank Outcome (Michelle's decision
+// 2026-11-25, matching the dashboard tab).
+const DENIALS_CSV_URL = 'https://pp10day.netlify.app/AEP%20RFIs%20Denials.csv';
+function isDenialOutcome(o) { const x = String(o||'').trim().toLowerCase(); return x === 'denied' || x === ''; }
+function parseDenialDateStr(s) {
+  const t = String(s||'').trim(); if (!t) return null;
+  let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[1]-1, +m[2]); }
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  const d = new Date(t); return isNaN(d) ? null : d;
+}
+// One fetch shared by the Overall Summary, the Agent Summary denial columns
+// and the ranking. Rows: { ag, mg, ca, re, er, outcome, effDate }.
+window.loadDenialsCsv = function() {
+  if (window._denialsCsvPromise) return window._denialsCsvPromise;
+  window._denialsCsvPromise = fetch(DENIALS_CSV_URL + '?t=' + Date.now())
+    .then(r => { if (!r.ok) throw new Error('denials HTTP ' + r.status); return r.text(); })
+    .then(text => {
+      const rows = parseCSV(text).filter(r => r.some(c => String(c).trim()));
+      if (rows.length < 2) throw new Error('denials file is empty');
+      const h = rows[0].map(x => String(x||'').trim().toLowerCase());
+      const col = (...names) => { for (const n of names) { const i = h.findIndex(x => x === n || x.startsWith(n)); if (i >= 0) return i; } return -1; };
+      const iA = col('agent name'), iM = col('manager name'), iC = col('carrier'), iR = col('denial reason'),
+            iE = col('agent error'), iO = col('outcome'), iF = col('effective date');
+      if (iA < 0 || iO < 0 || iF < 0) throw new Error('denials file is missing Agent Name / Outcome / Effective Date');
+      const out = rows.slice(1).map(r => {
+        const mg = String(r[iM]||'').trim();
+        return {
+          ag: String(r[iA]||'').trim(),
+          // Some rows carry only a first name ("John", "Michelle"); those can't be
+          // matched to a manager, so they fall back to the agent's manager.
+          mg: /\s/.test(mg) ? mg : '',
+          ca: iC >= 0 ? String(r[iC]||'').trim() : '',
+          re: iR >= 0 ? String(r[iR]||'').trim() : '',
+          er: iE >= 0 ? String(r[iE]||'').trim() : '',
+          outcome: String(r[iO]||'').trim(),
+          effDate: parseDenialDateStr(r[iF])
+        };
+      }).filter(r => r.ag);
+      window._denialCsvRows = out;
+      return out;
+    })
+    .catch(err => { console.error('Denials load failed:', err); window._denialCsvRows = null; window._denialsCsvPromise = null; throw err; });
+  return window._denialsCsvPromise;
+};
+
+// ── AGENT RISK RANKING ────────────────────────────────────────
+// Per agent, over the selected period (by effective date):
+//   Cancel % = cancellations (Cancellations master) / apps (EH Policies)
+//   Deny %   = denials (AEP RFIs_Denials_V2) / apps
+// Ranked highest first on the Rank-by metric; ties go to more apps, then name.
+// Tiers by position: top 25% High, bottom 25% Low, the rest Watch.
+// Only the period drives the ranking. Manager / Agent / Carrier / Compliance
+// narrow what is shown but never re-rank. Agents under RK_MIN_APPS apps, and
+// agents the roster lists as Termed Agent, are not ranked.
+const RK_MIN_APPS = 10;
+let rkRankBy = 'cd', rkOpen = false, rkResult = { ready: false, ranked: [], tierByKey: {}, notRanked: [] };
+const rkKeyMemo = new Map();
+function rkKey(name) {
+  const raw = String(name||'');
+  if (rkKeyMemo.has(raw)) return rkKeyMemo.get(raw);
+  const k = normName(raw).split(' ').filter(t => t.length > 1).sort().join(' ');
+  rkKeyMemo.set(raw, k); return k;
+}
+function rkDisplayName(name) {
+  const s = String(name||'').trim(), i = s.indexOf(',');
+  return i < 0 ? s : (s.slice(i+1).trim() + ' ' + s.slice(0, i).trim()).replace(/\s+/g,' ');
+}
+function rkInRange(d, from, to) { if (!from && !to) return true; if (!d) return false; if (from && d < from) return false; if (to && d > to) return false; return true; }
+function buildRiskRanking() {
+  const dens = window._denialCsvRows;
+  if (!asLoaded || !cancelLoaded || !dens) { rkResult = { ready: false, ranked: [], tierByKey: {}, notRanked: [] }; return; }
+  const [from, to] = getDateRange();
+  const A = {};
+  const get = (n, preferName) => {
+    const k = rkKey(n); if (!k) return null;
+    const a = A[k] || (A[k] = { key: k, name: '', apps: 0, cancels: 0, denials: 0, reviews: 0, variants: new Set() });
+    if (preferName && !a.name) a.name = rkDisplayName(n);
+    a.variants.add(rkDisplayName(n));
+    return a;
+  };
+  asRows.forEach(r => { if (!rkInRange(r.effDate, from, to)) return; const a = get(r.agent, false); if (a) { a.apps++; a.alt = a.alt || r.agent; } });
+  cancelRows.forEach(r => { if (!rkInRange(parseDate(r[CC.EFF_DATE]), from, to)) return; const a = get(r[CC.AGENT], true); if (a) a.cancels++; });
+  dens.forEach(r => { if (!isDenialOutcome(r.outcome) || !rkInRange(r.effDate, from, to)) return; const a = get(r.ag, true); if (a) a.denials++; });
+  allRows.forEach(r => {
+    if (/^test$/i.test((r[C.FINDINGS]||'').trim())) return;
+    if (!rkInRange(parseDate(r[C.EFF_DATE]), from, to)) return;
+    const a = get(r[C.AGENT], true); if (a) a.reviews++;
+  });
+  const all = Object.values(A).map(a => {
+    a.name = a.name || rkDisplayName(a.alt || a.key);
+    a.cp = a.apps ? a.cancels / a.apps * 100 : 0;
+    a.dp = a.apps ? a.denials / a.apps * 100 : 0;
+    a.cd = a.cp + a.dp;
+    a.termed = rosterReady && rosterMgr(rkRosterName(a)) === 'Termed Agent';
+    return a;
+  });
+  const ranked = all.filter(a => a.apps >= RK_MIN_APPS && !a.termed)
+    .sort((x, y) => y[rkRankBy] - x[rkRankBy] || y.apps - x.apps || x.name.localeCompare(y.name));
+  const n = ranked.length, nHigh = Math.ceil(n * 0.25), nLow = Math.ceil(n * 0.25);
+  const tierByKey = {};
+  ranked.forEach((a, i) => { a.rank = i + 1; a.tier = i < nHigh ? 'High' : (i >= n - nLow ? 'Low' : 'Watch'); tierByKey[a.key] = a.tier; });
+  const notRanked = all.filter(a => (a.apps < RK_MIN_APPS || a.termed) && (a.apps || a.cancels || a.denials));
+  rkResult = { ready: true, ranked, tierByKey, notRanked };
+}
+// The same agent can be spelled differently across sheets ("Rene King" /
+// "Rene N. King"). Use whichever spelling the roster knows.
+function rkRosterName(a) {
+  if (rosterReady) for (const v of a.variants || []) if (rosterMgr(v)) return v;
+  return a.name;
+}
+function rkMgr(a) { return agentMgr(rkRosterName(a)); }
+// Risk Tier filter: true when no tier is picked or the ranking isn't ready yet.
+function tierAllows(agentName) {
+  const el = document.getElementById('sbTier'), t = el ? el.value : '';
+  if (!t || !rkResult.ready) return true;
+  return rkResult.tierByKey[rkKey(agentName)] === t;
+}
+window.tierAllows = tierAllows;
+// Data that arrives after the last applyFilters() (EH Policies, the
+// Cancellations master, denials) rebuilds the ranking on its own.
+function rkRefresh() { buildRiskRanking(); renderRiskRanking(); }
+const RK_LABEL = { High: 'High risk', Watch: 'Watch', Low: 'Low risk' };
+function rkVisibleRows() {
+  const manager = document.getElementById('sbManager').value, agent = document.getElementById('sbAgent').value;
+  const tier = document.getElementById('sbTier').value;
+  return rkResult.ranked.filter(a => {
+    if (tier && a.tier !== tier) return false;
+    if (manager && !closeNameMatch(canonManager(rkMgr(a)), manager)) return false;
+    if (agent && rkKey(agent) !== a.key && !closeNameMatch(a.name, agent)) return false;
+    return true;
+  });
+}
+function renderRiskRanking() {
+  const tb = document.getElementById('rkBody'); if (!tb) return;
+  const tier = document.getElementById('sbTier').value;
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const banner = document.getElementById('rkBanner');
+  if (!rkResult.ready) {
+    tb.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:#bbb">' + (window._denialsCsvPromise === null && window._denialCsvRows === null ? 'Could not load the denials file.' : 'Loading…') + '</td></tr>';
+    ['rkKA','rkKC','rkKR','rkKN'].forEach(id => set(id, '—')); set('rkKRd', '—'); set('rkCount', '');
+    document.getElementById('rkMore').style.display = 'none'; document.getElementById('rkExcl').textContent = '';
+    if (banner) banner.style.display = 'none';
+    return;
+  }
+  const rows = rkVisibleRows();
+  const cs = rows.reduce((s, a) => s + a.cancels, 0), rs = rows.reduce((s, a) => s + a.reviews, 0);
+  const none = rows.filter(a => a.cancels > 0 && a.reviews === 0).length;
+  set('rkKA', rows.length); set('rkKAd', tier ? RK_LABEL[tier] + ' agents' : 'ranked'); set('rkKC', cs); set('rkKR', rs);
+  set('rkKRd', cs ? Math.round(rs / cs * 100) + '% of cancellations reviewed' : 'no cancellations'); set('rkKN', none);
+  if (banner) {
+    if (tier) {
+      banner.style.display = 'flex';
+      banner.innerHTML = 'Showing <b class="rk-tiername">' + esc(RK_LABEL[tier]) + '</b> agents only (' + rows.length + '). Reviews done: <b>' + rs + '</b> of ' + cs + ' cancellations. <button type="button" onclick="clearRiskTier()">Clear</button>';
+    } else banner.style.display = 'none';
+  }
+  set('rkCount', '(' + rkResult.ranked.length + ' ranked)');
+  let show = rows;
+  const hidden = (!tier && !rkOpen) ? rows.filter(a => a.tier !== 'High').length : 0;
+  if (!tier && !rkOpen) show = rows.filter(a => a.tier === 'High');
+  const f1 = v => v.toFixed(1) + '%';
+  let last = '';
+  tb.innerHTML = show.length ? show.map(a => {
+    const g = a.tier !== last ? '<tr class="rk-grp"><td colspan="11">' + RK_LABEL[a.tier] + '</td></tr>' : ''; last = a.tier;
+    return g + '<tr><td class="num">' + a.rank + '</td><td>' + esc(a.name) + '</td><td>' + esc(rkMgr(a)) + '</td>'
+      + '<td class="num">' + a.apps + '</td><td class="num">' + a.cancels + '</td>'
+      + '<td class="num' + (rkRankBy === 'cp' ? ' rk-key' : '') + '">' + f1(a.cp) + '</td>'
+      + '<td class="num">' + a.denials + '</td>'
+      + '<td class="num' + (rkRankBy === 'dp' ? ' rk-key' : '') + '">' + f1(a.dp) + '</td>'
+      + '<td class="num' + (rkRankBy === 'cd' ? ' rk-key' : '') + '">' + f1(a.cd) + '</td>'
+      + '<td class="num' + (a.cancels && !a.reviews ? ' rk-zero' : '') + '">' + a.reviews + '</td>'
+      + '<td><span class="rk-pill ' + a.tier + '">' + RK_LABEL[a.tier] + '</span></td></tr>';
+  }).join('') : '<tr><td colspan="11" style="text-align:center;padding:20px;color:#bbb">No ranked agents match these filters.</td></tr>';
+  const more = document.getElementById('rkMore');
+  more.style.display = (tier || (!rkOpen && !hidden)) ? 'none' : 'flex';
+  document.getElementById('rkMoreBtn').textContent = rkOpen ? 'Hide Watch and Low risk' : 'Show Watch and Low risk (' + hidden + ')';
+  const under = rkResult.notRanked.filter(a => !a.termed).length, termed = rkResult.notRanked.filter(a => a.termed);
+  document.getElementById('rkExcl').textContent = 'Not ranked: ' + under + ' agent' + (under === 1 ? '' : 's') + ' under ' + RK_MIN_APPS + ' apps in the period'
+    + (termed.length ? '; ' + termed.length + ' termed (' + termed.slice(0, 6).map(a => a.name).join(', ') + (termed.length > 6 ? ', …' : '') + ')' : '') + '.';
+}
+function setRankBy(k) {
+  rkRankBy = (k === 'cp' || k === 'dp') ? k : 'cd';
+  document.querySelectorAll('#rkRankBy button').forEach(b => b.classList.toggle('on', b.dataset.k === rkRankBy));
+  applyFilters();
+}
+function toggleRiskMore() { rkOpen = !rkOpen; renderRiskRanking(); }
+function clearRiskTier() { document.getElementById('sbTier').value = ''; applyFilters(); }
+function riskExportRows() {
+  return rkVisibleRows().map(a => [a.rank, a.name, rkMgr(a), a.apps, a.cancels, a.cp.toFixed(1)+'%', a.denials, a.dp.toFixed(1)+'%', a.cd.toFixed(1)+'%', a.reviews, RK_LABEL[a.tier]]);
+}
+const RK_HEADERS = ['Rank','Agent','Manager','Apps','Cancels','Cancel %','Denials','Deny %','Cancel + Deny %','Reviews Done','Tier'];
+function downloadRiskCSV() {
+  const q = v => '"' + String(v).replace(/"/g,'""') + '"';
+  const csv = [RK_HEADERS.map(q).join(','), ...riskExportRows().map(r => r.map(q).join(','))].join('\n');
+  triggerDownload(csv, 'text/csv', 'agent-risk-ranking.csv');
+}
+function downloadRiskPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  pdf.setFontSize(13); pdf.setTextColor(26, 39, 68);
+  pdf.text('Agent Risk Ranking', 40, 40);
+  pdf.autoTable({ head: [RK_HEADERS], body: riskExportRows(), startY: 55, styles: { fontSize: 9 }, headStyles: { fillColor: [26,39,68] }, alternateRowStyles: { fillColor: [247,249,252] } });
+  pdf.save('agent-risk-ranking.pdf');
+}
+
+function tagClass(f) {
+  const l = f.toLowerCase();
+  if (l.includes('pushy')) return 'tag-red';
+  if (l.includes('improper')||l.includes('inaccurate')||l.includes('inadequate')) return 'tag-orange';
+  return 'tag-default';
+}
+
+// ── CARRIER NAME NORMALIZATION ─────────────────────────────────
+// Different sheets spell the same carrier differently (legal-entity
+// suffixes, abbreviations, casing). This maps any spelling variant to
+// one canonical display name so filtering/grouping treats them as one
+// carrier everywhere in the report.
+const CARRIER_RULES = [
+  { test: /devoted/,                         name: 'Devoted Health' },
+  { test: /wellcare/,                        name: 'WellCare' },
+  { test: /\buhc\b|united\s*health/,         name: 'UHC' },
+  { test: /\bhumana\b/,                      name: 'Humana' },
+  { test: /\baetna\b/,                       name: 'Aetna' },
+  { test: /\bcigna\b/,                       name: 'Cigna' },
+  { test: /\banthem\b/,                      name: 'Anthem' },
+  { test: /\bmolina\b/,                      name: 'Molina' },
+  { test: /\bkaiser\b/,                      name: 'Kaiser Permanente' },
+  { test: /blue\s*cross|\bbcbs\b/,           name: 'BCBS' },
+  { test: /\bcenten?e\b/,                    name: 'Centene' },
+  { test: /\bclover\b/,                      name: 'Clover Health' },
+  { test: /gold\s*kidney/,                   name: 'Gold Kidney' },
+  { test: /\bzing\b/,                        name: 'Zing Health' },
+  { test: /\bcareplus\b/,                     name: 'CarePlus' }
+];
+function canonicalCarrier(raw) {
+  const s = String(raw||'').trim();
+  if (!s) return '';
+  const norm = s.toLowerCase().replace(/[.,]/g, '').replace(/\s+/g, ' ').trim();
+  for (const rule of CARRIER_RULES) { if (rule.test.test(norm)) return rule.name; }
+  // No known rule matched: still collapse case/whitespace variants of the
+  // same unrecognized name so they group together consistently.
+  return norm.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function buildBarChart(id, entries, colorClass, labelWidth) {
+  const el = document.getElementById(id);
+  if (!entries.length) { el.innerHTML='<div class="no-data">No data for this period.</div>'; return; }
+  const max = entries[0][1];
+  el.innerHTML = entries.map(([label,count],i) =>
+    '<div class="bar-row"><span class="bar-rank">'+(i+1)+'</span><span class="bar-label '+labelWidth+'" title="'+esc(label)+'">'+esc(label)+'</span><div class="bar-bg"><div class="bar-fill '+colorClass+'" style="width:'+Math.round(count/max*100)+'%"></div></div><span class="bar-count">'+count+'</span></div>'
+  ).join('');
+}
+
+function buildCharts(rows) {
+  const findingCounts = {};
+  rows.forEach(r => (r[C.FINDINGS]||'').split(',').map(x=>x.trim()).filter(x=>x&&x.toLowerCase()!=='no fault found').forEach(f => { findingCounts[f]=(findingCounts[f]||0)+1; }));
+  buildBarChart('trendsChart', Object.entries(findingCounts).sort((a,b)=>b[1]-a[1]).slice(0,10), 'navy', 'wide');
+
+  const needsCounts = {};
+  rows.forEach(r => (r[C.NEEDS_MISSED]||'').split(',').map(x=>x.trim()).filter(x=>x&&x.toUpperCase()!=='N'&&x.toUpperCase()!=='N/A').forEach(n => { needsCounts[n]=(needsCounts[n]||0)+1; }));
+  buildBarChart('needsMissedChart', Object.entries(needsCounts).sort((a,b)=>b[1]-a[1]).slice(0,10), 'orange', 'med');
+
+  const retCounts = {};
+  rows.forEach(r => { if ((r[C.RETURNED]||'').trim().toUpperCase()==='Y' && (r[C.CARRIER]||'').trim()) { const c=canonicalCarrier(r[C.CARRIER]); retCounts[c]=(retCounts[c]||0)+1; } });
+  buildBarChart('returnedChart', Object.entries(retCounts).sort((a,b)=>b[1]-a[1]), 'teal', 'med');
+}
+
+function buildStats(rows) {
+  document.getElementById('statTotal').textContent = rows.length;
+  document.getElementById('statFalse').textContent = rows.filter(r=>(r[C.FALSE_CLAIMS]||'').trim().toUpperCase()==='Y').length;
+  document.getElementById('statNoFault').textContent = rows.filter(r=>!(r[C.FINDINGS]||'').split(',').map(x=>x.trim()).includes('No Fault Found') && (r[C.FINDINGS]||'').trim()).length;
+  document.getElementById('statNeedsMissed').textContent = rows.filter(r=>{ const v=(r[C.NEEDS_MISSED]||'').trim(); return v&&v.toUpperCase()!=='N/A'&&v.toUpperCase()!=='N'; }).length;
+  document.getElementById('statReturned').textContent = rows.filter(r=>(r[C.RETURNED]||'').trim().toUpperCase()==='Y').length;
+}
+
+// ── ROSTER / NAME MATCHING (Agent -> Manager) ─────────────────
+// Normalize a name: lowercase, drop parentheticals, keep letters only,
+// strip common suffixes, collapse spaces.
+function normName(s) {
+  return String(s||'')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\b(jr|sr|ii|iii|iv|md|dr)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+// Order-independent key so "Mark Gallego" == "Gallego Mark" == "Gallego, Mark".
+function nameKey(s) { return normName(s).split(' ').filter(Boolean).sort().join(' '); }
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  let prev = Array.from({length:n+1}, (_,i)=>i);
+  for (let i=1; i<=m; i++) {
+    let cur = [i];
+    for (let j=1; j<=n; j++) {
+      cur[j] = Math.min(prev[j]+1, cur[j-1]+1, prev[j-1] + (a[i-1]===b[j-1]?0:1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+// Close (not exact) name match. Exact normalized/token-key first,
+// then a small edit-distance tolerance scaled to name length.
+function closeNameMatch(a, b) {
+  if (!a || !b) return false;
+  if (nameKey(a) === nameKey(b)) return true;
+  const na = normName(a), nb = normName(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  const tol = Math.max(1, Math.floor(Math.min(na.length, nb.length) * 0.15));
+  return levenshtein(na, nb) <= tol;
+}
+
+// Given an agent name, return their manager from the roster (fuzzy).
+function managerForAgent(agentName) {
+  if (!rosterReady || !agentName) return '';
+  const k = nameKey(agentName);
+  if (rosterByKey[k]) return rosterByKey[k];
+  const na = normName(agentName);
+  let best = '', bestDist = Infinity;
+  rosterList.forEach(e => {
+    const d = levenshtein(na, e.norm);
+    if (d < bestDist) { bestDist = d; best = e.manager; }
+  });
+  const tol = Math.max(1, Math.floor(na.length * 0.15));
+  return bestDist <= tol ? best : '';
+}
+
+function detectRosterCols(header) {
+  let agentCol = -1, mgrCol = -1;
+  header.forEach((h, i) => {
+    const x = (h||'').toLowerCase();
+    if (mgrCol < 0 && (x.includes('manager') || x.includes('supervisor') || x.includes('team lead') || x.includes('upline') || x === 'lead')) mgrCol = i;
+  });
+  header.forEach((h, i) => {
+    const x = (h||'').toLowerCase();
+    if (agentCol < 0 && i !== mgrCol && (x.includes('agent') || x.includes('rep') || x.includes('name'))) agentCol = i;
+  });
+  return { agentCol, mgrCol };
+}
+
+function loadRoster() {
+  fetch(ROSTER_GVIZ_URL)
+    .then(r => { if (!r.ok) throw new Error('roster ' + r.status); return r.text(); })
+    .then(text => {
+      const rows = parseCSV(text).filter(r => r.some(c => c.trim()));
+      if (!rows.length) throw new Error('roster empty');
+      const { agentCol, mgrCol } = detectRosterCols(rows[0]);
+      if (agentCol < 0 || mgrCol < 0) { console.warn('Roster: could not detect Agent/Manager columns from header', rows[0]); return; }
+      rosterByKey = {}; rosterList = [];
+      rows.slice(1).forEach(r => {
+        const agent = (r[agentCol]||'').trim(), mgr = (r[mgrCol]||'').trim();
+        if (!agent || !mgr) return;
+        const k = nameKey(agent);
+        if (k && !rosterByKey[k]) rosterByKey[k] = mgr;
+        rosterList.push({ norm: normName(agent), manager: mgr });
+      });
+      rosterReady = true;
+      agentMgrMemo = {};
+      if (allRows.length) { applyFilters(); return; }
+      populateFilters();
+      updateCancellations();
+      if (typeof buildOverallSummary === 'function') buildOverallSummary();
+    })
+    .catch(err => { console.error('Roster load failed:', err); });
+}
+
+// Total Cancellations comes from the separate Cancellations master tab.
+// Honors the effective date period and the Agent/Carrier filters (columns on that tab).
+// Manager is resolved per agent via the Roster tab (fuzzy name match).
+// Compliance Risk is not on that tab, so it does not affect this count.
+function updateCancellations() {
+  const el = document.getElementById('statCancellations');
+  if (!cancelLoaded) { el.textContent = '—'; return; }
+  const agent = document.getElementById('sbAgent').value;
+  const carrier = document.getElementById('sbCarrier').value;
+  const manager = document.getElementById('sbManager').value;
+  // A manager is selected but the roster hasn't loaded yet: can't resolve the mapping.
+  if (manager && !rosterReady) { el.textContent = '—'; return; }
+  const dCol = CC.EFF_DATE;
+  const [dateFrom, dateTo] = getDateRange();
+  el.textContent = cancelRows.filter(r => {
+    if (!tierAllows(r[CC.AGENT])) return false;
+    if (agent && !closeNameMatch(r[CC.AGENT], agent)) return false;
+    if (carrier && canonicalCarrier(r[CC.CARRIER]) !== carrier) return false;
+    if (manager && !closeNameMatch(canonManager(agentMgr(r[CC.AGENT])), manager)) return false;
+    if (dateFrom || dateTo) { const d = parseDate(r[dCol]); if (!d) return false; if (dateFrom && d < dateFrom) return false; if (dateTo && d > dateTo) return false; }
+    return true;
+  }).length;
+}
+
+function buildHead() {
+  document.getElementById('tableHead').innerHTML = '<tr>'+HD.map((h,i)=>'<th onclick="sortBy('+i+')" class="'+(sortCol===i?'sorted':'')+'">'+h+'<span class="sort-icon">'+(sortCol===i?(sortAsc?'&#9650;':'&#9660;'):'&#8645;')+'</span></th>').join('')+'</tr>';
+}
+
+function renderTable() {
+  buildHead();
+  const start = (currentPage-1)*PAGE_SIZE, pageRows = filteredRows.slice(start, start+PAGE_SIZE);
+  const tb = document.getElementById('tableBody');
+  document.getElementById('resultCount').textContent = '('+filteredRows.length+' records)';
+  if (!pageRows.length) {
+    tb.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:40px;color:#bbb">No results match your filters.</td></tr>';
+  } else {
+    tb.innerHTML = pageRows.map(r => {
+      const findings = (r[C.FINDINGS]||'').split(',').map(f=>f.trim()).filter(Boolean);
+      const nm = (r[C.NEEDS_MISSED]||'').split(',').map(f=>f.trim()).filter(Boolean);
+      const fl = (r[C.FORM_LINK]||'').trim(), al = (r[C.AMS]||'').trim(), fc = (r[C.FALSE_CLAIMS]||'').trim().toUpperCase();
+      return '<tr>'
+        +'<td><div class="td-wrap" title="'+esc(r[C.AGENT])+'">'+esc(r[C.AGENT])+'</div></td>'
+        +'<td><div class="td-wrap" title="'+esc(r[C.MANAGER])+'">'+esc(r[C.MANAGER])+'</div></td>'
+        +'<td>'+(al?'<a class="link-btn" href="'+esc(al)+'" target="_blank" rel="noopener">Open &#8599;</a>':'—')+'</td>'
+        +'<td>'+esc(r[C.APP_DATE])+'</td>'
+        +'<td>'+esc(r[C.EFF_DATE])+'</td>'
+        +'<td><div class="td-wrap" title="'+esc(r[C.CARRIER])+'">'+esc(r[C.CARRIER])+'</div></td>'
+        +'<td class="td-tags">'+(findings.length?findings.map(f=>'<span class="tag '+tagClass(f)+'">'+esc(f)+'</span>').join(''):'—')+'</td>'
+        +'<td><div class="td-wrap" title="'+esc(r[C.NEEDS])+'">'+esc(r[C.NEEDS]||'—')+'</div></td>'
+        +'<td style="text-align:center">'+(fc==='Y'?'<span class="badge-y">Y</span>':fc==='N'?'<span class="badge-n">N</span>':esc(fc)||'—')+'</td>'
+        +'<td class="td-tags">'+(nm.length?nm.map(f=>'<span class="tag tag-orange">'+esc(f)+'</span>').join(''):'—')+'</td>'
+        +'<td>'+esc(r[C.RETURNED])+'</td>'
+        +'<td style="white-space:normal;min-width:120px">'+esc(r[C.PLAN_SOLD]||'—')+'</td>'
+        +'<td>'+(fl?'<a class="link-btn" href="'+esc(fl)+'" target="_blank" rel="noopener">View &#8599;</a>':'—')+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+  const total = filteredRows.length, totalPages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  document.getElementById('pageInfo').textContent = 'Showing '+Math.min(start+1,total)+'–'+Math.min(start+PAGE_SIZE,total)+' of '+total;
+  let btns = '<button onclick="goPage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>&#8249; Prev</button>';
+  for (let p=Math.max(1,currentPage-2); p<=Math.min(totalPages,currentPage+2); p++) btns += '<button onclick="goPage('+p+')" class="'+(p===currentPage?'active':'')+'">'+p+'</button>';
+  btns += '<button onclick="goPage('+(currentPage+1)+')" '+(currentPage===totalPages?'disabled':'')+'>Next &#8250;</button>';
+  document.getElementById('pageBtns').innerHTML = btns;
+}
+
+
+function buildAgentSummary(rows) {
+  const agents = {};
+  rows.forEach(r => {
+    const agent = (r[C.AGENT]||'').trim();
+    const manager = (r[C.MANAGER]||'').trim();
+    if (!agent) return;
+    if (!agents[agent]) agents[agent] = { manager, total: 0, founded: 0, risk: 0 };
+    agents[agent].total++;
+    const findings = (r[C.FINDINGS]||'').split(',').map(x=>x.trim());
+    if (!findings.includes('No Fault Found') && (r[C.FINDINGS]||'').trim()) agents[agent].founded++;
+    if ((r[C.FALSE_CLAIMS]||'').trim().toUpperCase()==='Y') agents[agent].risk++;
+  });
+
+  // Per-agent cancellation counts from the Cancellations tab, under the same
+  // date window + carrier filters, matched to agents by close (fuzzy) name.
+  const carrier = document.getElementById('sbCarrier').value;
+  const dCol = CC.EFF_DATE;
+  const [cFrom, cTo] = getDateRange();
+  const cancelByKey = {}; // nameKey -> count
+  if (cancelLoaded) {
+    cancelRows.forEach(r => {
+      if (carrier && canonicalCarrier(r[CC.CARRIER]) !== carrier) return;
+      if (cFrom || cTo) { const d = parseDate(r[dCol]); if (!d) return; if (cFrom && d < cFrom) return; if (cTo && d > cTo) return; }
+      const k = nameKey(r[CC.AGENT]); if (!k) return;
+      cancelByKey[k] = (cancelByKey[k]||0) + 1;
+    });
+  }
+  const cancelKeys = Object.keys(cancelByKey);
+  function cancelCountFor(agentName) {
+    const ak = nameKey(agentName);
+    if (!ak) return 0;
+    const tol = Math.max(1, Math.floor(ak.length * 0.15));
+    let total = 0;
+    cancelKeys.forEach(k => { if (k === ak || levenshtein(ak, k) <= tol) total += cancelByKey[k]; });
+    return total;
+  }
+
+  const sorted = Object.entries(agents).sort((a,b)=>b[1].total-a[1].total);
+  document.getElementById('agentSummaryCount').textContent = '('+sorted.length+' agents)';
+  const tb = document.getElementById('agentSummaryBody');
+  if (!sorted.length) { tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:#bbb">No data for this period.</td></tr>'; return; }
+  tb.innerHTML = sorted.map(([agent, d]) =>
+    '<tr>'
+    +'<td>'+esc(agent)+'</td>'
+    +'<td>'+esc(d.manager)+'</td>'
+    +'<td class="num">'+(cancelLoaded ? cancelCountFor(agent) : '—')+'</td>'
+    +'<td class="num">'+d.total+'</td>'
+    +'<td class="num">'+d.founded+'</td>'
+    +'<td class="num risk">'+d.risk+'</td>'
+    +'</tr>'
+  ).join('');
+}
+function applyFilters() {
+  applyAlignment();
+  buildRiskRanking();
+  // Keep the Agent/Manager dropdowns in sync with the selected date range
+  // (they list everyone with submissions whose Effective Date is in range).
+  populateFilters();
+  const manager=document.getElementById('sbManager').value, agent=document.getElementById('sbAgent').value;
+  const carrier=document.getElementById('sbCarrier').value, compliance=document.getElementById('sbCompliance').value;
+  const dateColIdx = C.EFF_DATE;
+  const [dateFrom,dateTo] = getDateRange();
+  filteredRows = allRows.filter(r => {
+    if (!tierAllows(r[C.AGENT])) return false;
+    if (manager && canonManager(r[C.MANAGER])!==manager) return false;
+    if (agent && r[C.AGENT]!==agent) return false;
+    if (carrier && canonicalCarrier(r[C.CARRIER])!==carrier) return false;
+    if (compliance && (r[C.FALSE_CLAIMS]||'').trim().toUpperCase()!==compliance) return false;
+    if (dateFrom||dateTo) { const d=parseDate(r[dateColIdx]); if (!d) return false; if (dateFrom&&d<dateFrom) return false; if (dateTo&&d>dateTo) return false; }
+    return true;
+  });
+  currentPage = 1; buildStats(filteredRows); buildCharts(filteredRows); buildAgentSummary(filteredRows); updateCancellations(); renderTable();
+  buildManagerScorecard();
+  renderRiskRanking();
+  buildOverallSummary();
+}
+
+function resetFilters() {
+  ['sbManager','sbAgent','sbTier','sbCarrier','sbCompliance'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('dateFrom').value = ''; document.getElementById('dateTo').value = '';
+  setPeriod('month');
+}
+
+function sortBy(col) {
+  sortCol===col ? sortAsc=!sortAsc : (sortCol=col, sortAsc=true);
+  filteredRows.sort((a,b) => { const av=(a[col]||'').toLowerCase(), bv=(b[col]||'').toLowerCase(); return sortAsc?av.localeCompare(bv):bv.localeCompare(av); });
+  currentPage = 1; renderTable();
+}
+
+function goPage(p) { const t=Math.ceil(filteredRows.length/PAGE_SIZE); if (p<1||p>t) return; currentPage=p; renderTable(); }
+
+// Build the Agent and Manager dropdowns from the Apps Submitted master
+// sheet: every agent (and, via the roster, every manager) that has a
+// submission whose Effective Date falls in the currently selected date
+// range. Manager names are aligned (John Tellez -> JT Tellez). The Carrier
+// dropdown continues to come from the review rows. The current selection is
+// preserved across rebuilds.
+function populateFilters() {
+  const [dFrom, dTo] = getDateRange();
+  const inRange = (d) => {
+    if (!dFrom && !dTo) return true;
+    if (!d) return false;
+    if (dFrom && d < dFrom) return false;
+    if (dTo && d > dTo) return false;
+    return true;
+  };
+
+  const agents = new Set(), managers = new Set();
+  asRows.forEach(r => {
+    if (!inRange(r.effDate)) return;
+    const ag = (r.agent||'').trim(); if (ag) agents.add(ag);
+    const mg = canonManager(agentMgr(r.agent)); if (mg) managers.add(mg);
+  });
+
+  // Also list every manager on the review rows in range, so a manager who
+  // appears in the data can always be selected.
+  allRows.forEach(r => {
+    if (!inRange(parseDate(r[C.EFF_DATE]))) return;
+    const mg = canonManager(r[C.MANAGER]); if (mg) managers.add(mg);
+  });
+
+  const carriers = new Set(allRows.map(r=>canonicalCarrier(r[C.CARRIER])).filter(Boolean));
+
+  const fill = (selId, allLabel, values) => {
+    const s = document.getElementById(selId); if (!s) return;
+    const prev = s.value;
+    s.innerHTML = '<option value="">'+allLabel+'</option>';
+    values.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; s.appendChild(o); });
+    if (prev && values.indexOf(prev) !== -1) s.value = prev;
+  };
+
+  fill('sbManager', 'All Managers', [...managers].filter(Boolean).sort());
+  fill('sbAgent',   'All Agents',   [...agents].filter(Boolean).sort());
+  fill('sbCarrier', 'All Carriers', [...carriers].filter(Boolean).sort());
+}
+
+function showError(msg) {
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="13" class="error-msg">'+msg+'</td></tr>';
+  ['trendsChart','needsMissedChart','returnedChart'].forEach(id => { document.getElementById(id).innerHTML='<div class="error-msg">'+msg+'</div>'; });
+}
+
+fetch(CSV_URL)
+  .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+  .then(text => {
+    const rows = parseCSV(text);
+    reviewHeader = rows[0] || [];
+    allRows = rows.slice(1).filter(r => r.some(c => c.trim()));
+    document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    populateFilters(); applyFilters();
+  })
+  .catch(err => { showError('Could not load data: ' + err.message); console.error(err); });
+
+// Load the Cancellations master tab for the Total Cancellations KPI.
+// Tries the gviz CSV endpoint (works when the sheet is link-viewable), then
+// falls back to the published-to-web URL. Failure leaves the KPI as a dash
+// and does not affect the rest of the dashboard.
+function loadCancellations() {
+  fetch(CANCEL_GVIZ_URL)
+    .then(r => { if (!r.ok) throw new Error('gviz ' + r.status); return r.text(); })
+    .then(t => { if (t.indexOf(',') === -1) throw new Error('not csv'); return t; })
+    .catch(() => fetch(CANCEL_PUB_URL).then(r => r.text()))
+    .then(text => {
+      const rows = parseCSV(text);
+      cancelRows = rows.slice(1).filter(r => r.some(c => c.trim()));
+      cancelLoaded = true;
+      rkRefresh();
+      updateCancellations();
+      buildAgentSummary(filteredRows);
+      if (typeof buildOverallSummary === 'function') buildOverallSummary();
+    })
+    .catch(err => { console.error('Cancellations load failed:', err); document.getElementById('statCancellations').textContent = '—'; });
+}
+loadCancellations();
+loadRoster();
+
+// ── DOWNLOAD HELPERS ──────────────────────────────────────────
+
+function downloadChartPNG(cardId, filename) {
+  const el = document.getElementById(cardId);
+  html2canvas(el, { backgroundColor: '#fff', scale: 2 }).then(canvas => {
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = filename + '.png';
+    a.click();
+  });
+}
+
+function downloadChartPDF(cardId, title) {
+  const el = document.getElementById(cardId);
+  html2canvas(el, { backgroundColor: '#fff', scale: 2 }).then(canvas => {
+    const { jsPDF } = window.jspdf;
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+    pdf.addImage(imgData, 'PNG', 20, 20, canvas.width * ratio - 40, canvas.height * ratio - 40);
+    pdf.save(title + '.pdf');
+  });
+}
+
+function downloadAgentCSV() {
+  const headers = ['Agent','Manager','Total Cancellations','Total Reviewed','Founded','Compliance Risk'];
+  const rows = Array.from(document.querySelectorAll('#agentSummaryBody tr')).map(tr =>
+    Array.from(tr.querySelectorAll('td')).map(td => '"' + td.textContent.trim().replace(/"/g,'""') + '"')
+  );
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  triggerDownload(csv, 'text/csv', 'agent-summary.csv');
+}
+
+function downloadAgentPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  pdf.setFontSize(13); pdf.setTextColor(26, 39, 68);
+  pdf.text('Agent Summary', 40, 40);
+  const headers = [['Agent','Manager','Total Cancellations','Total Reviewed','Founded','Compliance Risk']];
+  const rows = Array.from(document.querySelectorAll('#agentSummaryBody tr')).map(tr =>
+    Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
+  );
+  pdf.autoTable({ head: headers, body: rows, startY: 55, styles: { fontSize: 9 }, headStyles: { fillColor: [26,39,68] }, alternateRowStyles: { fillColor: [247,249,252] } });
+  pdf.save('agent-summary.pdf');
+}
+
+function downloadReviewsCSV() {
+  const headers = ['Agent','Manager','AMS','App Date','Eff. Date','Carrier','Findings','Needs','Compliance Risk','Needs Missed','Returned?','Plan Sold','Form Link'];
+  const rows = filteredRows.map(r => headers.map((h, i) => {
+    const colMap = [C.AGENT,C.MANAGER,C.AMS,C.APP_DATE,C.EFF_DATE,C.CARRIER,C.FINDINGS,C.NEEDS,C.FALSE_CLAIMS,C.NEEDS_MISSED,C.RETURNED,C.PLAN_SOLD,C.FORM_LINK];
+    return '"' + (r[colMap[i]]||'').replace(/"/g,'""') + '"';
+  }));
+  const csv = [headers.map(h=>'"'+h+'"').join(','), ...rows.map(r=>r.join(','))].join('\n');
+  triggerDownload(csv, 'text/csv', 'cancellation-reviews.csv');
+}
+
+function downloadReviewsPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  pdf.setFontSize(13); pdf.setTextColor(26, 39, 68);
+  pdf.text('Cancellation Reviews', 40, 40);
+  const headers = [['Agent','Manager','App Date','Eff. Date','Carrier','Findings','Compliance Risk','Returned?','Plan Sold']];
+  const colMap = [C.AGENT,C.MANAGER,C.APP_DATE,C.EFF_DATE,C.CARRIER,C.FINDINGS,C.FALSE_CLAIMS,C.RETURNED,C.PLAN_SOLD];
+  const rows = filteredRows.map(r => colMap.map(ci => (r[ci]||'').trim()));
+  pdf.autoTable({ head: headers, body: rows, startY: 55, styles: { fontSize: 8, overflow: 'linebreak', cellWidth: 'wrap' }, headStyles: { fillColor: [26,39,68] }, alternateRowStyles: { fillColor: [247,249,252] }, columnStyles: { 5: { cellWidth: 100 } } });
+  pdf.save('cancellation-reviews.pdf');
+}
+
+function triggerDownload(content, mimeType, filename) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ── OVERALL SUMMARY (static 5-month view, effective date only) ──
+// Apps Submitted (and the denominator for Cancellation %/Denial %) comes
+// from the master Apps Submitted book-of-business sheet (every policy
+// submitted, one row each). Cancelled counts come from the same
+// Cancellations master tab used for the "Total Cancellations" KPI above
+// (so the two always agree). Denied counts come from the
+// Applications/Denials tracking sheet (gid 0), which carries an Outcome
+// (Cancelled, Denied, Approved, Pending, blank) per row.
+// Bucketed by Effective Date. Responds to Manager / Agent / Carrier
+// filters only — never to the date/period filter.
+const OS_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/12DOVFfT0OwxEODayZADoJjUIyIgvSfK9FrXd8aLnB3E/gviz/tq?tqx=out:json&gid=0&range=A2:R5000&headers=0';
+const OS = { AGENT:0, MANAGER:1, SUB_DATE:5, EFF_DATE:6, CARRIER:8, OUTCOME:15 };
+let osRows = [], osLoaded = false;
+
+// Apps Submitted master sheet: Policy ID, First Name, Last Name, MBI,
+// PhoneNumber, Servicing Agent Name, Additional Agent Name, App Submit Date,
+// Effective Date, StateAbbrev, Carrier Name, ...
+const AS_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/1LlxjOsN25cpjlOX5vfa1o_qSh6_XqzB-ZvRzxFXADdE/gviz/tq?tqx=out:json&gid=0&range=A2:R30000&headers=0';
+const AS = { AGENT:5, SUB_DATE:7, EFF_DATE:8, CARRIER:10 };
+let asRows = [], asLoaded = false, asSource = '';
+// -- Apps Submitted from the 10 Day folder (Michelle, 2026-11-01) --
+// Source: "EH Policies.csv" on pp10day (the 10-day folder's EnrollHere export,
+// refreshed every morning), replacing the Apps Submitted Google Sheet, which had
+// stopped at mid-September submissions. The sheet is still read if pp10day
+// can't be reached, and the page says which source it used.
+// One app per EH Policies row, every status. Two quirks in that export are
+// corrected here (only when the file has the "Column1" layout, see below):
+//  - Rows whose "Column1" holds an email are shifted one column left from there
+//    (the agent-name cell is missing). For those, the App Submit Date is in the
+//    "Created Date" column and the Effective Date in "Approved Date".
+//    (841 rows on 2026-11-01, mostly Sept/Oct POL_SUBMITTED.)
+//  - Rows with Owner First Name "0" carry the first name in "Owner Last Name"
+//    and the last name in "Column1". (1,046 rows.)
+// Agent = Owner First + Last Name (the EH policy owner is the writing agent),
+// returned as "Last, First" to match the old sheet. Checked 2026-11-01: July
+// 2026 per-agent counts equal the sheet's (Hollis 46, Nguyen 41, Vintimilla 38...).
+const EH_POLICIES_URL = 'https://pp10day.netlify.app/EH%20Policies.csv';
+function ehPoliciesToApps(matrix) {
+  const h = (matrix[0] || []).map(x => String(x == null ? '' : x).replace(/^﻿/, '').trim());
+  const ix = n => h.indexOf(n);
+  const iOF = ix('Owner First Name'), iOL = ix('Owner Last Name');
+  const iCr = ix('Created Date'), iSub = ix('Submitted Date'), iApp = ix('Approved Date');
+  const iEff = ix('Effective Date'), iCar = ix('Carrier');
+  if ([iOF, iOL, iCr, iSub, iApp, iEff, iCar].some(i => i < 0)) throw new Error('EH Policies.csv is missing an expected column');
+  // The two quirks only exist in the hand-edited layout, which has an extra
+  // "Column1" right after Owner Last Name. The raw EnrollHere export (what Box
+  // "Daily Reporting" holds since 2026-11-02) has no Column1 and needs no fixing.
+  const iC1 = h[iOL + 1] === 'Column1' ? iOL + 1 : -1;
+  const out = [];
+  for (let i = 1; i < matrix.length; i++) {
+    const r = matrix[i];
+    if (!r || !r.some(c => String(c || '').trim())) continue;
+    const g = k => String(r[k] == null ? '' : r[k]).trim();
+    const c1 = iC1 >= 0 ? g(iC1) : '', of = g(iOF), ol = g(iOL);
+    const shifted = iC1 >= 0 && c1.indexOf('@') !== -1;
+    const zero = iC1 >= 0 && of === '0';
+    const first = zero ? ol : of;
+    const last = zero ? c1 : ol;
+    const agent = (last && first) ? last + ', ' + first : (last || first);
+    out.push({ agent: agent, submitDate: g(shifted ? iCr : iSub), effDate: g(shifted ? iApp : iEff), carrier: g(iCar) });
+  }
+  return out;
+}
+
+function osCellDate(cell) {
+  if (!cell || !cell.v) return null;
+  const m = String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+  return m ? new Date(+m[1], +m[2], +m[3]) : null;
+}
+function osCellStr(cell) { return String(cell && cell.v || '').trim(); }
+
+// Denial counts now come from AEP RFIs_Denials_V2 (see DENIALS_CSV_URL).
+function loadOverallSummaryData() {
+  window.loadDenialsCsv()
+    .then(rows => {
+      osRows = rows.map(r => ({ agent: r.ag, manager: r.mg, carrier: r.ca, outcome: r.outcome.toLowerCase(), effDate: r.effDate }));
+      osLoaded = true;
+      if (allRows.length) applyFilters(); else { rkRefresh(); buildOverallSummary(); }
+    })
+    .catch(err => { console.error('Overall Summary load failed:', err); document.getElementById('overallSummaryBody').innerHTML = '<div class="error-msg">Could not load Overall Summary data.</div>'; });
+}
+
+// Apps Submitted sheet has no Manager column, so manager filtering is
+// resolved via the same roster fuzzy-match used for the Cancellations tab.
+// Apps Submitted: EH Policies from the 10 Day site first (see ehPoliciesToApps);
+// the master Google Sheet below is the fallback.
+function loadAppsSubmittedData() {
+  fetch(EH_POLICIES_URL, { cache: 'no-cache' })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(t => {
+      asRows = ehPoliciesToApps(parseCSV(t))
+        .map(a => ({ agent: a.agent, carrier: a.carrier, effDate: parseDate(a.effDate) }))
+        .filter(r => r.agent || r.effDate);
+      asSource = '10 Day EH Policies';
+      asLoaded = true;
+      populateFilters();
+      rkRefresh();
+      buildOverallSummary();
+    })
+    .catch(err => {
+      console.error('EH Policies (10 Day) load failed, using the Apps Submitted sheet:', err);
+      loadAppsSubmittedSheet();
+    });
+}
+function loadAppsSubmittedSheet() {
+  fetch(AS_GVIZ_URL)
+    .then(r => r.text())
+    .then(t => {
+      const m = t.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+      if (!m) throw new Error('unexpected response');
+      const rows = JSON.parse(m[1]).table.rows;
+      // Keep a row if it looks like a real submitted app. Previously this
+      // filtered on column A (Policy ID), but recently submitted apps sit in
+      // the sheet with a blank Policy ID until the carrier issues one, so every
+      // pending row was dropped and forward months (e.g. September) showed only
+      // the handful of rows that already had policy numbers.
+      asRows = rows.filter(r => {
+        if (!r.c) return false;
+        const hasAgent = r.c[AS.AGENT] && String(r.c[AS.AGENT].v || '').trim() !== '';
+        const hasEff = !!osCellDate(r.c[AS.EFF_DATE]);
+        return hasAgent || hasEff;
+      }).map(r => ({
+        agent: osCellStr(r.c[AS.AGENT]),
+        carrier: osCellStr(r.c[AS.CARRIER]),
+        effDate: osCellDate(r.c[AS.EFF_DATE])
+      }));
+      asSource = 'Apps Submitted sheet (fallback)';
+      asLoaded = true;
+      populateFilters();
+      rkRefresh();
+      buildOverallSummary();
+    })
+    .catch(err => { console.error('Apps Submitted load failed:', err); document.getElementById('overallSummaryBody').innerHTML = '<div class="error-msg">Could not load Apps Submitted data.</div>'; });
+}
+
+function osArrow(curr, prev, higherIsGood) {
+  if (prev === null || prev === undefined) return '';
+  const diff = curr - prev;
+  if (Math.abs(diff) < 0.001) return '<span class="os-card-arrow flat">&#8594;</span>';
+  const up = diff > 0;
+  const cls = up ? (higherIsGood ? 'up-good' : 'up-bad') : (higherIsGood ? 'down-bad' : 'down-good');
+  return '<span class="os-card-arrow '+cls+'">'+(up?'&#9650;':'&#9660;')+'</span>';
+}
+
+function buildOverallSummary() {
+  const el = document.getElementById('overallSummaryBody');
+  if (!osLoaded || !asLoaded || !cancelLoaded) { el.innerHTML = '<div class="loading">Loading…</div>'; return; }
+
+  const manager = document.getElementById('sbManager').value;
+  const agent = document.getElementById('sbAgent').value;
+  const carrier = document.getElementById('sbCarrier').value;
+
+  // Denied counts come from the Applications/Denials tab.
+  const denialRows = osRows.filter(r => {
+    if (!tierAllows(r.agent)) return false;
+    if (manager && canonManager(rowMgr(r.agent, r.manager)) !== manager) return false;
+    if (agent && r.agent !== agent) return false;
+    if (carrier && canonicalCarrier(r.carrier) !== carrier) return false;
+    return true;
+  });
+
+  // Cancelled counts come from the same Cancellations master tab used by the
+  // "Total Cancellations" KPI, so the two numbers always match.
+  const cancelFilteredRows = cancelRows.filter(r => {
+    if (!tierAllows(r[CC.AGENT])) return false;
+    if (agent && !closeNameMatch(r[CC.AGENT], agent)) return false;
+    if (carrier && canonicalCarrier(r[CC.CARRIER]) !== carrier) return false;
+    if (manager && !closeNameMatch(canonManager(agentMgr(r[CC.AGENT])), manager)) return false;
+    return true;
+  });
+
+  // Apps Submitted total (the denominator) comes from the master book of
+  // business sheet. No Manager column there, so resolve it via the roster.
+  const submittedRows = asRows.filter(r => {
+    if (!tierAllows(r.agent)) return false;
+    if (agent && !closeNameMatch(r.agent, agent)) return false;
+    if (manager && !closeNameMatch(canonManager(agentMgr(r.agent)), manager)) return false;
+    if (carrier && canonicalCarrier(r.carrier) !== carrier) return false;
+    return true;
+  });
+
+  const today = new Date(), y = today.getFullYear(), m = today.getMonth();
+  // 6 buckets: one extra month before the window, purely to compute the
+  // first displayed month's comparison arrow.
+  const monthDefs = [];
+  for (let i = -4; i <= 1; i++) {
+    const d = new Date(y, m+i, 1);
+    monthDefs.push({ y: d.getFullYear(), m: d.getMonth() });
+  }
+  const stats = monthDefs.map(md => {
+    let total=0;
+    submittedRows.forEach(r => {
+      if (r.effDate && r.effDate.getFullYear()===md.y && r.effDate.getMonth()===md.m) total++;
+    });
+    let cancelled=0;
+    cancelFilteredRows.forEach(r => {
+      const d = parseDate(r[CC.EFF_DATE]);
+      if (d && d.getFullYear()===md.y && d.getMonth()===md.m) cancelled++;
+    });
+    let denied=0;
+    denialRows.forEach(r => {
+      if (r.effDate && r.effDate.getFullYear()===md.y && r.effDate.getMonth()===md.m && isDenialOutcome(r.outcome)) denied++;
+    });
+    return {
+      total,
+      cancelPct: total ? cancelled/total*100 : 0, cancelled,
+      denialPct: total ? denied/total*100 : 0, denied
+    };
+  });
+
+  const labels = ['','','','','',''];
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (let i=1;i<monthDefs.length;i++) {
+    labels[i] = monthNames[monthDefs[i].m];
+  }
+
+  const MAX_BAR_H = 90; // px
+
+  function chartCard(metricLabel, getters) {
+    const vals = [1,2,3,4,5].map(i => getters.value(stats[i]));
+    const max = Math.max(1, ...vals);
+    const trend = osArrow(getters.value(stats[4]), getters.value(stats[3]), getters.higherIsGood);
+
+    let bars = '';
+    for (let i=1;i<stats.length;i++) {
+      const val = getters.value(stats[i]);
+      const h = Math.max(4, Math.round(val/max*MAX_BAR_H));
+      const barClass = i===4 ? 'current' : (i===5 ? 'next' : '');
+      bars += '<div class="os-bar-col">'
+        + '<div class="os-bar-value">'+getters.display(stats[i])+'</div>'
+        + (getters.sub ? '<div class="os-bar-sub">'+getters.sub(stats[i])+'</div>' : '')
+        + '<div class="os-bar'+(barClass?' '+barClass:'')+'" style="height:'+h+'px"></div>'
+        + '<div class="os-bar-month">'+labels[i]+'</div>'
+        + '</div>';
+    }
+
+    return '<div class="os-chart-card">'
+      + '<div class="os-chart-header"><div class="os-chart-title">'+metricLabel+'</div><div class="os-chart-trend">'+trend+'</div></div>'
+      + '<div class="os-bars">'+bars+'</div>'
+      + '</div>';
+  }
+
+  let html = '<div class="os-charts-row">';
+  html += chartCard('Apps Submitted', {
+    value: s => s.total,
+    display: s => s.total,
+    higherIsGood: true
+  });
+  html += chartCard('Cancellation %', {
+    value: s => s.cancelPct,
+    display: s => s.cancelPct.toFixed(1)+'%',
+    sub: s => s.cancelled+' of '+s.total,
+    higherIsGood: false
+  });
+  html += chartCard('Denial %', {
+    value: s => s.denialPct,
+    display: s => s.denialPct.toFixed(1)+'%',
+    sub: s => s.denied+' of '+s.total,
+    higherIsGood: false
+  });
+  html += '</div>';
+  if (asSource) html += '<div style="font-size:11px;color:#888;margin-top:6px">Apps Submitted source: ' + asSource + '</div>';
+  el.innerHTML = html;
+  // Read by the Member Experience dashboard's Summary tab (2026-11-01), so its
+  // Cancellations section shows exactly these figures. Unfiltered only.
+  if (!manager && !agent && !carrier) {
+    window.__overallSummary = { months: monthDefs.map(md => ({ y: md.y, m: md.m })), stats: JSON.parse(JSON.stringify(stats)), appsSource: asSource, at: Date.now() };
+  }
+}
+
+loadOverallSummaryData();
+loadAppsSubmittedData();
+
+</script>
+
+
+
+<script>
+(function() {
+  'use strict';
+  function normMgr(m){if(!m)return '';if(String(m).trim().toLowerCase()==='john tellez')return 'JT Tellez';return String(m).trim();}
+  function normName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+  function getTopReasons(obj){
+    var sorted=Object.entries(obj||{}).sort(function(a,b){return b[1]-a[1];});
+    if(!sorted.length)return ['N/A'];
+    var result=[],tiers=0,last=null;
+    for(var i=0;i<sorted.length;i++){if(sorted[i][1]!==last){if(tiers>=2)break;tiers++;last=sorted[i][1];}result.push(sorted[i][0]);}
+    return result;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  var adm={},totD=0,totE=0,byCar={},byFind={};
+
+  // Denials: AEP RFIs_Denials_V2 via the shared loader in the main script.
+  function loadDenials(){
+    return window.loadDenialsCsv()
+      .then(function(rows){
+        rows.forEach(function(row){
+          if(!isDenialOutcome(row.outcome))return;
+          var ag=row.ag,ca=(typeof canonicalCarrier==='function'?canonicalCarrier(row.ca):row.ca),
+              re=row.re,er=row.er,k=normName(ag);
+          totD++;if(ca)byCar[ca]=(byCar[ca]||0)+1;if(re)byFind[re]=(byFind[re]||0)+1;
+          if(er.toLowerCase()==='yes')totE++;
+          if(!adm[k])adm[k]={d:0,e:0,r:{}};adm[k].d++;
+          if(er.toLowerCase()==='yes')adm[k].e++;
+          if(re)adm[k].r[re]=(adm[k].r[re]||0)+1;
+        });
+      }).catch(function(e){console.error(e);});
+  }
+
+  function barRow(i,label,count,max,col){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'+
+      '<span style="width:14px;text-align:right;font-size:0.73rem;color:#7b8a9e;flex-shrink:0;">'+(i+1)+'</span>'+
+      '<span style="flex:0 0 130px;font-size:0.78rem;color:#1a2340;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(label)+'</span>'+
+      '<div style="flex:1;background:#e8ecf0;border-radius:3px;height:8px;min-width:40px;"><div style="width:'+(count/max*100)+'%;background:'+col+';border-radius:3px;height:8px;"></div></div>'+
+      '<span style="font-size:0.78rem;font-weight:600;color:#1a2340;flex:0 0 24px;text-align:right;">'+count+'</span></div>';
+  }
+  function findingRow(i,label,count,max){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'+
+      '<span style="width:14px;text-align:right;font-size:0.73rem;color:#7b8a9e;flex-shrink:0;">'+(i+1)+'</span>'+
+      '<span style="flex:0 0 110px;font-size:0.78rem;color:#1a2340;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(label)+'</span>'+
+      '<span style="flex-shrink:0;font-size:0.75rem;font-weight:700;color:#fff;background:#f5a623;border-radius:10px;padding:1px 7px;min-width:28px;text-align:center;">'+count+'</span>'+
+      '<div style="flex:1;background:#e8ecf0;border-radius:3px;height:8px;min-width:30px;"><div style="width:'+(count/max*100)+'%;background:#f5a623;border-radius:3px;height:8px;"></div></div></div>';
+  }
+  function buildDenialsCards(){
+    var cs=Object.entries(byCar).sort(function(a,b){return b[1]-a[1];}),mc=cs.length?cs[0][1]:1;
+    var fs=Object.entries(byFind).sort(function(a,b){return b[1]-a[1];}),mf=fs.length?fs[0][1]:1;
+    return '<div id="denials-stats-row" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">'+
+      '<div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:20px 24px;flex:0 0 180px;"><div style="font-size:.72rem;font-weight:600;color:#7b8a9e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Total Denials</div><div style="font-size:2rem;font-weight:700;color:#1a2340;">'+totD+'</div></div>'+
+      '<div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:20px 24px;flex:0 0 180px;"><div style="font-size:.72rem;font-weight:600;color:#7b8a9e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Total Agent Errors</div><div style="font-size:2rem;font-weight:700;color:#1a2340;">'+totE+'</div></div>'+
+      '<div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:20px 24px;flex:1;min-width:0;"><div style="font-size:.72rem;font-weight:600;color:#7b8a9e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Count by Carrier</div>'+cs.map(function(x,i){return barRow(i,x[0],x[1],mc,'#1a2340');}).join('')+'</div>'+
+      '<div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:20px 24px;flex:1;min-width:0;"><div style="font-size:.72rem;font-weight:600;color:#7b8a9e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Top Findings</div>'+fs.slice(0,3).map(function(x,i){return findingRow(i,x[0],x[1],mf);}).join('')+'</div>'+
+    '</div>';
+  }
+
+  function injectStructure(){
+    var main=document.querySelector('.main'),sr=document.querySelector('.stats-row');
+    if(main&&sr&&!document.getElementById('cancellations-section-header')){
+      var ch=document.createElement('div');ch.id='cancellations-section-header';ch.style.cssText='margin:12px 0 8px 0;padding:0 28px;';
+      ch.innerHTML='<div style="font-size:1.25rem;font-weight:700;color:#1a2340;letter-spacing:.04em;text-transform:uppercase;border-bottom:2px solid #1a2340;padding-bottom:6px;">Cancellations</div>';
+      main.insertBefore(ch,sr);
+    }
+    // The Denials section (header + Total Denials / Agent Errors / Count by
+    // Carrier / Top Findings cards) was removed 2026-11-25 at Michelle's request.
+    // rebuildDenialsSection() no-ops without #denials-stats-row. The denial
+    // cache stays because Agent Summary's denial columns use it.
+  }
+
+  function patch(){
+    if(!window.buildAgentSummary||window.buildAgentSummary.__p)return;
+    var _o=window.buildAgentSummary;
+    window.buildAgentSummary=function(fr){
+      _o(fr);
+      var acr={};
+      (fr||[]).forEach(function(r){
+        var ag=String(r[0]||'').trim();if(!ag)return;var k=normName(ag);if(!acr[k])acr[k]={};
+        String(r[6]||'').split(',').map(function(f){return f.trim();}).filter(function(f){return f&&f!=='No Fault Found';}).forEach(function(f){acr[k][f]=(acr[k][f]||0)+1;});
+      });
+      var th=document.querySelector('.agent-summary-card thead tr');
+      if(th){
+        var hs=Array.from(th.querySelectorAll('th')).map(function(x){return x.textContent.trim();});
+        if(hs.indexOf('Total Denials')===-1){
+          [{t:'Total Denials',c:'num'},{t:'Total Agent Error',c:'num'},{t:'Top Cancellation Reason',c:''},{t:'Top Denial Reason',c:''}].forEach(function(h){
+            var x=document.createElement('th');x.className=h.c;x.textContent=h.t;th.appendChild(x);
+          });
+        }
+      }
+      var tb=document.getElementById('agentSummaryBody');if(!tb)return;
+      // Per-agent denial counts are recomputed on EVERY render from the same
+      // filtered row set the Denials cards use, so they honor the active date
+      // range / carrier / manager / agent filters. The all-time `adm` map is
+      // only a fallback for the brief window before the cache resolves.
+      var dmap=null;
+      if(typeof window.filterDenialRows==='function'&&window._allDenialRows){
+        dmap={};
+        window.filterDenialRows().forEach(function(dr){
+          var dk=normName(dr.ag);if(!dk)return;
+          if(!dmap[dk])dmap[dk]={d:0,e:0,r:{}};
+          dmap[dk].d++;
+          if(String(dr.er||'').trim().toLowerCase()==='yes')dmap[dk].e++;
+          if(dr.re)dmap[dk].r[dr.re]=(dmap[dk].r[dr.re]||0)+1;
+        });
+      }
+      Array.from(tb.querySelectorAll('tr')).forEach(function(row){
+        // Skip the "No data for this period." placeholder row.
+        if(row.cells.length===1&&row.cells[0].hasAttribute('colspan'))return;
+        while(row.cells.length>6)row.deleteCell(row.cells.length-1);
+        var an=String(row.cells[0]&&row.cells[0].textContent||'').trim(),k=normName(an);
+        if(row.cells[1])row.cells[1].textContent=normMgr(row.cells[1].textContent);
+        var dd=dmap?dmap[k]:adm[k];
+        var t1=document.createElement('td');t1.className='num';t1.textContent=dd?dd.d:0;row.appendChild(t1);
+        var t2=document.createElement('td');t2.className='num';t2.textContent=dd?dd.e:0;row.appendChild(t2);
+        var tc=getTopReasons(acr[k]||{});
+        var t3=document.createElement('td');t3.style.cssText='font-size:.82rem;max-width:160px;white-space:normal;word-break:break-word;line-height:1.4;';t3.textContent=tc.join(', ');row.appendChild(t3);
+        var td2=getTopReasons(dd?dd.r:{});
+        var t4=document.createElement('td');t4.style.cssText='font-size:.82rem;max-width:160px;white-space:normal;word-break:break-word;line-height:1.4;';t4.textContent=td2.join(', ');row.appendChild(t4);
+      });
+    };
+    window.buildAgentSummary.__p=true;
+  }
+
+  /* ---- Export Report ---- */
+  window.exportReport=async function(format){
+    var bw=document.getElementById('report-export-btn-wrap');
+    var sb=document.querySelector('.sidebar');
+    var arh=null;Array.from(document.querySelectorAll('.section-header')).forEach(function(el){if(el.textContent.indexOf('All Reviews')!==-1)arh=el;});
+    var art=document.querySelector('.table-card');
+    var pg=document.querySelector('.pagination');
+    var toHide=[bw,sb,arh,art,pg].filter(Boolean);
+    var orig=toHide.map(function(el){return{el:el,d:el.style.display};});
+    var mel=document.querySelector('.main');
+    var oml=mel?mel.style.marginLeft:'',opl=mel?mel.style.paddingLeft:'',obo=document.body.style.overflow;
+    var pb=document.getElementById('export-png-btn'),pfb=document.getElementById('export-pdf-btn');
+    var opt=pb?pb.innerHTML:'',ofpt=pfb?pfb.innerHTML:'';
+    if(pb){pb.innerHTML='Generating…';pb.disabled=true;}if(pfb){pfb.innerHTML='Generating…';pfb.disabled=true;}
+    try{
+      toHide.forEach(function(el){el.style.display='none';});
+      if(mel){mel.style.marginLeft='0';mel.style.paddingLeft='28px';}
+      document.body.style.overflow='visible';
+      await new Promise(function(r){setTimeout(r,200);});
+      var re=document.querySelector('.main');
+      var cv=await html2canvas(re,{scale:2,useCORS:true,allowTaint:false,backgroundColor:'#f0f2f5',logging:false,windowWidth:re.scrollWidth,width:re.scrollWidth,height:re.scrollHeight,scrollX:0,scrollY:0});
+      var now=new Date(),ds=now.toISOString().slice(0,10),fn='cancellations-'+ds;
+      if(format==='png'){
+        var lk=document.createElement('a');lk.download=fn+'.png';lk.href=cv.toDataURL('image/png');lk.click();
+      }else{
+        var JP=window.jspdf.jsPDF,iw=cv.width,ih=cv.height,pw=297,ph=210,ratio=pw/(iw/2),pih=(ih/2)*ratio;
+        if(pih<=ph){
+          var pdf=new JP({orientation:'landscape',unit:'mm',format:'a4'});
+          pdf.addImage(cv.toDataURL('image/png'),'PNG',0,0,pw,pih);pdf.save(fn+'.pdf');
+        }else{
+          var pdf=new JP({orientation:'landscape',unit:'mm',format:'a4'});
+          var phPx=Math.floor(ph/ratio*2),yOff=0,pgN=0;
+          while(yOff<ih){
+            if(pgN>0)pdf.addPage();
+            var slH=Math.min(phPx,ih-yOff),sc=document.createElement('canvas');
+            sc.width=iw;sc.height=slH;var ctx=sc.getContext('2d');
+            ctx.drawImage(cv,0,yOff,iw,slH,0,0,iw,slH);
+            pdf.addImage(sc.toDataURL('image/png'),'PNG',0,0,pw,(slH/2)*ratio);
+            yOff+=slH;pgN++;
+          }
+          pdf.save(fn+'.pdf');
+        }
+      }
+    }finally{
+      orig.forEach(function(s){s.el.style.display=s.d;});
+      if(mel){mel.style.marginLeft=oml;mel.style.paddingLeft=opl;}
+      document.body.style.overflow=obo;
+      if(pb){pb.innerHTML=opt;pb.disabled=false;}if(pfb){pfb.innerHTML=ofpt;pfb.disabled=false;}
+    }
+  };
+
+  var _inited=false;
+  function init(){
+    // Both the MutationObserver and the 800ms timer can fire, and loadDenials()
+    // accumulates into module-level counters. Without this guard it ran twice
+    // and every denial total came out doubled.
+    if(_inited)return; _inited=true;
+    var tt=document.querySelector('.topbar-title');if(tt)tt.textContent='Cancellations';
+    var ss=document.querySelector('.sidebar .sub');if(ss)ss.textContent='Cancellations';
+    document.title='PolicyPoint — Cancellations Dashboard';
+    patch();
+    loadDenials().then(function(){injectStructure();if(typeof applyFilters==='function')applyFilters();});
+  }
+
+  var obs=new MutationObserver(function(m,o){
+    var tb=document.getElementById('agentSummaryBody');
+    if(tb&&tb.querySelectorAll('tr').length>0){o.disconnect();init();}
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+  setTimeout(init,800);
+})();
+</script>
+
+<script>
+(function() {
+  'use strict';
+
+  var DENIALS_GVIZ =
+    'https://docs.google.com/spreadsheets/d/12DOVFfT0OwxEODayZADoJjUIyIgvSfK9FrXd8aLnB3E/gviz/tq?gid=0&headers=1';
+  var DC = { AGENT:0, MANAGER:1, CARRIER:8, DENIAL_REASON:13, OUTCOME:15, AGENT_ERROR:16, SUB_DATE:5, EFF_DATE:6 };
+
+  function parseDenialDate(cell){
+    if(cell instanceof Date) return cell;
+    if(!cell||!cell.v) return null;
+    var m=String(cell.v).match(/Date\((\d+),(\d+),(\d+)\)/);
+    return m ? new Date(+m[1],+m[2],+m[3]) : null;
+  }
+
+  function cv(cell){ return String(cell&&cell.v||'').trim(); }
+
+  // Denials: AEP RFIs_Denials_V2 via the shared loader in the main script
+  // (DENIALS_GVIZ above is no longer read).
+  function cacheDenialRows(){
+    return window.loadDenialsCsv()
+      .then(function(rows){
+        window._allDenialRows = rows
+          .filter(function(r){return isDenialOutcome(r.outcome);})
+          .map(function(r){
+            return { ag:r.ag, mg:r.mg, ca:r.ca, re:r.re, er:r.er, subDate:null, effDate:r.effDate };
+          });
+      })
+      .catch(function(e){console.error('Denials cache error:',e);});
+  }
+
+  function filterDenialRows(){
+    if(!window._allDenialRows) return [];
+    var mgEl=document.getElementById('sbManager');
+    var agEl=document.getElementById('sbAgent');
+    var caEl=document.getElementById('sbCarrier');
+    var manager=mgEl?mgEl.value:'', agent=agEl?agEl.value:'', carrier=caEl?caEl.value:'';
+
+    var dr=(typeof getDateRange==='function')?getDateRange():[null,null];
+    var dateFrom=dr[0] instanceof Date?dr[0]:null, dateTo=dr[1] instanceof Date?dr[1]:null;
+
+    return window._allDenialRows.filter(function(row){
+      if(typeof window.tierAllows==='function' && !window.tierAllows(row.ag)) return false;
+      if(agent   && row.ag!==agent)              return false;
+      var rmg=(typeof rowMgr==='function')?rowMgr(row.ag,row.mg):row.mg;
+      if(manager && (typeof canonManager==='function'?canonManager(rmg):rmg)!==manager)            return false;
+      if(carrier && (typeof canonicalCarrier==='function'?canonicalCarrier(row.ca):row.ca)!==carrier)  return false;
+      if(dateFrom||dateTo){
+        var d=parseDenialDate(row.effDate);
+        if(!d) return false;
+        if(dateFrom&&d<dateFrom) return false;
+        if(dateTo  &&d>dateTo)   return false;
+      }
+      return true;
+    });
+  }
+
+  function barRow(i,label,count,max,col){
+    var pct=max?Math.round(count/max*100):0;
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+      '<span style="font-size:.7rem;color:#7b8a9e;width:14px;text-align:right">'+i+'</span>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">'+label+'</div>'+
+        '<div style="height:6px;border-radius:3px;background:#e8ecf0;margin-top:2px">'+
+          '<div style="height:6px;border-radius:3px;background:'+col+';width:'+pct+'%"></div>'+
+        '</div></div>'+
+      '<span style="font-size:.78rem;font-weight:600;color:#1a2340">'+count+'</span></div>';
+  }
+
+  function findingRow(i,label,count,max){
+    var pct=max?Math.round(count/max*100):0;
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+      '<span style="font-size:.7rem;color:#7b8a9e;width:14px;text-align:right">'+i+'</span>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500">'+label+'</div>'+
+        '<div style="height:6px;border-radius:3px;background:#e8ecf0;margin-top:2px">'+
+          '<div style="height:6px;border-radius:3px;background:#f5a623;width:'+pct+'%"></div>'+
+        '</div></div>'+
+      '<span style="display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:11px;background:#f5a623;color:#fff;font-size:.72rem;font-weight:700;padding:0 4px">'+count+'</span></div>';
+  }
+
+  window.rebuildDenialsSection = function(){
+    var statsRow=document.getElementById('denials-stats-row');
+    if(!statsRow||statsRow.children.length<4) return;
+    var rows=filterDenialRows();
+    var totD=0,totE=0,byCar={},byFind={};
+    rows.forEach(function(row){
+      totD++;
+      var ca=(typeof canonicalCarrier==='function'?canonicalCarrier(row.ca):row.ca);
+      if(ca) byCar[ca]=(byCar[ca]||0)+1;
+      if(row.re) byFind[row.re]=(byFind[row.re]||0)+1;
+      if(row.er.toLowerCase()==='yes') totE++;
+    });
+    var c0=statsRow.children[0]; if(c0.children[1]) c0.children[1].textContent=totD;
+    var c1=statsRow.children[1]; if(c1.children[1]) c1.children[1].textContent=totE;
+    var cs=Object.entries(byCar).sort(function(a,b){return b[1]-a[1];}), mcC=cs.length?cs[0][1]:1;
+    statsRow.children[2].innerHTML=
+      '<div style="font-size:.72rem;font-weight:600;color:#7b8a9e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Count by Carrier</div>'+
+      (cs.length?cs.slice(0,7).map(function(e,i){return barRow(i+1,e[0],e[1],mcC,'#1a2340');}).join(''):'<div style="color:#7b8a9e;font-size:.82rem">No data</div>');
+    var fs=Object.entries(byFind).sort(function(a,b){return b[1]-a[1];}), mcF=fs.length?fs[0][1]:1;
+    statsRow.children[3].innerHTML=
+      '<div style="font-size:.72rem;font-weight:600;color:#7b8a9e;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Top Findings</div>'+
+      (fs.length?fs.slice(0,5).map(function(e,i){return findingRow(i+1,e[0],e[1],mcF);}).join(''):'<div style="color:#7b8a9e;font-size:.82rem">No data</div>');
+  };
+
+  // Exposed so the Agent Summary table can build its per-agent denial counts
+  // from exactly the same filtered rows as the Denials cards.
+  window.filterDenialRows = filterDenialRows;
+
+  function wrapWithRebuild(fnName){
+    var orig=window[fnName];
+    if(typeof orig!=='function') return;
+    window[fnName]=function(){ orig.apply(this,arguments); window.rebuildDenialsSection(); };
+  }
+
+  function install(){
+    if(typeof applyFilters==='function'&&typeof getDateRange==='function'){
+      cacheDenialRows().then(function(){
+        window.rebuildDenialsSection();
+        wrapWithRebuild('applyFilters');
+        wrapWithRebuild('resetFilters');
+        wrapWithRebuild('setPeriod');
+        // Repaint the Agent Summary now that the filterable denial cache
+        // exists, so its denial columns switch off the all-time fallback.
+        if(typeof applyFilters==='function')applyFilters();
+      });
+    } else {
+      setTimeout(install, 200);
+    }
+  }
+
+  install();
+})();
+</script>
+</body>
+</html>
