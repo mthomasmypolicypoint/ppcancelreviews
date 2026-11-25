@@ -120,6 +120,7 @@
   .link-btn:hover { background: #1a2744; color: #fff; }
   .badge-y { background: #fdecea; color: #c0392b; border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 700; display: inline-block; }
   .badge-n { background: #eafaf1; color: #1e8449; border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 700; display: inline-block; }
+  .badge-muted { background: #f0f2f5; color: #7b8a9e; border-radius: 3px; padding: 2px 6px; font-size: 10px; font-weight: 700; display: inline-block; }
   .pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid #f0f2f5; font-size: 11px; color: #999; }
   .page-btns { display: flex; gap: 4px; }
   .page-btns button { padding: 4px 9px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; font-size: 11px; }
@@ -183,6 +184,7 @@
   .rk-seg { display: flex; border: 1px solid #e3e7ee; border-radius: 6px; overflow: hidden; background: #fff; }
   .rk-seg button { border: 0; background: #fff; padding: 6px 10px; font-size: 11.5px; cursor: pointer; color: #1a2744; font-family: inherit; }
   .rk-seg button.on { background: #1a2744; color: #fff; font-weight: 600; }
+  .rk-min { border: 1px solid #e3e7ee; border-radius: 6px; padding: 5px 8px; font-size: 11.5px; color: #1a2744; background: #fff; font-family: inherit; cursor: pointer; }
   .rk-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow-x: auto; margin-bottom: 24px; }
   .rk-card table { width: 100%; border-collapse: collapse; font-size: 11.5px; min-width: 900px; }
   .rk-card thead { background: #1a2744; color: #fff; }
@@ -215,6 +217,12 @@
   </div>
   <div class="sb-section">
     <div class="sb-section-title">Date Filter</div>
+    <div class="sb-label">Date Basis</div>
+    <div class="align-seg" id="dateBasisSeg" role="group" aria-label="Date basis">
+      <button type="button" data-basis="eff" class="active" onclick="setDateBasis('eff')">Effective Date</button>
+      <button type="button" data-basis="app" onclick="setDateBasis('app')">Application Date</button>
+    </div>
+    <div class="align-hint" id="dateBasisHint">Periods and charts use each record's Effective Date.</div>
     <div class="sb-label">Period</div>
     <div class="period-btns">
       <button class="period-btn active" data-period="month" onclick="setPeriod('month')">This Month</button>
@@ -299,7 +307,7 @@
   <div class="overall-summary" id="overallSummary">
     <div class="overall-summary-header">
       <div class="overall-summary-title">Overall Summary</div>
-      <div class="overall-summary-sub">5-month view by effective date · not affected by date filter</div>
+      <div class="overall-summary-sub" id="overallSummarySub">5-month view by effective date · not affected by date filter</div>
     </div>
     <div id="overallSummaryBody"><div class="loading">Loading…</div></div>
   </div>
@@ -352,6 +360,43 @@
       </table>
     </div>
 
+    <div class="rk-section-header">
+      <div class="section-header-left"><div class="section-title">Agent Risk Ranking</div><div class="result-count" id="rkCount"></div></div>
+      <div class="rk-ctl">
+        <span class="rk-ctl-label">Rank by</span>
+        <div class="rk-seg" id="rkRankBy" role="group" aria-label="Rank by">
+          <button type="button" data-k="cd" class="on" onclick="setRankBy('cd')">Cancel + Deny %</button><button type="button" data-k="cp" onclick="setRankBy('cp')">Cancel %</button><button type="button" data-k="dp" onclick="setRankBy('dp')">Deny %</button>
+        </div>
+        <span class="rk-ctl-label">Min apps</span>
+        <select class="rk-min" id="rkMinApps" onchange="setRiskMinApps(this.value)" aria-label="Minimum apps">
+          <option value="1">Any</option><option value="5">5+</option><option value="10" selected>10+</option><option value="15">15+</option><option value="20">20+</option>
+        </select>
+        <div class="dl-btns"><button class="dl-btn csv" onclick="downloadRiskCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadRiskPDF()">&#8595; PDF</button></div>
+      </div>
+    </div>
+    <div class="rk-card">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Rank</th>
+            <th>Agent</th>
+            <th>Manager</th>
+            <th class="num">Apps</th>
+            <th class="num">Cancels</th>
+            <th class="num">Cancel %</th>
+            <th class="num">Denials</th>
+            <th class="num">Deny %</th>
+            <th class="num">Cancel + Deny %</th>
+            <th class="num">Reviews Done</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+        <tbody id="rkBody"><tr><td colspan="11" style="text-align:center;padding:20px;color:#bbb">Loading…</td></tr></tbody>
+      </table>
+      <div class="rk-more" id="rkMore"><button type="button" id="rkMoreBtn" onclick="toggleRiskMore()"></button></div>
+      <div class="rk-excl" id="rkExcl"></div>
+    </div>
+
     <div class="section-header">
       <div class="section-header-left"><div class="section-title">Agent Summary</div><div class="result-count" id="agentSummaryCount"></div></div>
       <div class="dl-btns"><button class="dl-btn csv" onclick="downloadAgentCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadAgentPDF()">&#8595; PDF</button></div>
@@ -389,38 +434,6 @@
       </div>
     </div>
 
-    <div class="rk-section-header">
-      <div class="section-header-left"><div class="section-title">Agent Risk Ranking</div><div class="result-count" id="rkCount"></div></div>
-      <div class="rk-ctl">
-        <span class="rk-ctl-label">Rank by</span>
-        <div class="rk-seg" id="rkRankBy" role="group" aria-label="Rank by">
-          <button type="button" data-k="cd" class="on" onclick="setRankBy('cd')">Cancel + Deny %</button><button type="button" data-k="cp" onclick="setRankBy('cp')">Cancel %</button><button type="button" data-k="dp" onclick="setRankBy('dp')">Deny %</button>
-        </div>
-        <div class="dl-btns"><button class="dl-btn csv" onclick="downloadRiskCSV()">&#8595; CSV</button><button class="dl-btn pdf" onclick="downloadRiskPDF()">&#8595; PDF</button></div>
-      </div>
-    </div>
-    <div class="rk-card">
-      <table>
-        <thead>
-          <tr>
-            <th class="num">Rank</th>
-            <th>Agent</th>
-            <th>Manager</th>
-            <th class="num">Apps</th>
-            <th class="num">Cancels</th>
-            <th class="num">Cancel %</th>
-            <th class="num">Denials</th>
-            <th class="num">Deny %</th>
-            <th class="num">Cancel + Deny %</th>
-            <th class="num">Reviews Done</th>
-            <th>Tier</th>
-          </tr>
-        </thead>
-        <tbody id="rkBody"><tr><td colspan="11" style="text-align:center;padding:20px;color:#bbb">Loading…</td></tr></tbody>
-      </table>
-      <div class="rk-more" id="rkMore"><button type="button" id="rkMoreBtn" onclick="toggleRiskMore()"></button></div>
-      <div class="rk-excl" id="rkExcl"></div>
-    </div>
   </div>
 </div>
 
@@ -504,7 +517,10 @@ function setAlignment(mode) {
   const sel = document.getElementById('sbManager'); if (sel) sel.value = '';
   applyFilters();
 }
-const HD = ['Agent','Manager','AMS','App Date','Eff. Date','Carrier','Findings','Needs','Compliance Risk','Needs Missed','Returned?','Plan Sold','Form Link'];
+const HD = ['Agent','Manager','AMS','App Date','Eff. Date','Carrier','Findings','Needs','Compliance Risk','Needs Missed','Returned?','Plan Sold','Coached'];
+// Column shown under each HD heading (sorting used to read r[i], which drifted
+// from the headings after Needs Missed). null = computed (Coached).
+const HD_COLS = [0,1,2,3,4,5,6,7,8,9,12,14,null];
 
 // ── MANAGER NAME ALIGNMENT ─────────────────────────────────────
 // Some sheets spell the same manager differently. Treat "John Tellez"
@@ -561,6 +577,27 @@ function parseDate(s) {
   return isNaN(d) ? null : d;
 }
 
+// ── DATE BASIS ────────────────────────────────────────────────
+// Which date the period (and the Overall Summary months) applies to.
+//   Effective Date (default): review Effective Date, master Effective Date,
+//     EH Policies Effective Date, denials Effective Date.
+//   Application Date: review App Submit Date, master App Submit Date,
+//     EH Policies Submitted Date, denials Submission Date.
+let dateBasis = 'eff';
+function useAppDate() { return dateBasis === 'app'; }
+function reviewDate(r) { return parseDate(r[useAppDate() ? C.APP_DATE : C.EFF_DATE]); }
+function cancelDate(r) { return parseDate(r[useAppDate() ? CC.APP_DATE : CC.EFF_DATE]); }
+function rowDate(r) { return useAppDate() ? r.subDate : r.effDate; }   // asRows, osRows, denial rows
+function setDateBasis(v) {
+  dateBasis = v === 'app' ? 'app' : 'eff';
+  document.querySelectorAll('#dateBasisSeg button').forEach(b => b.classList.toggle('active', b.dataset.basis === dateBasis));
+  const hint = document.getElementById('dateBasisHint');
+  if (hint) hint.textContent = useAppDate()
+    ? 'Periods and charts use the date the application was submitted.'
+    : "Periods and charts use each record's Effective Date.";
+  applyFilters();
+}
+
 function getDateRange() {
   const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const eod = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
@@ -612,6 +649,15 @@ function msIsFault(r) {
   return !raw.split(',').map(x=>x.trim()).includes('No Fault Found');
 }
 function msYes(v) { return /^y(es)?$/i.test(String(v||'').trim()); }
+// Coached = Coached (Y/N) is Y/Yes, or a Coached On / Coached By entry
+// (review sheet columns R, S, T; found by header name). Same rule as the
+// Manager Scorecard's At Fault Coached.
+function reviewCoachCols() { return { y: reviewCol(['coached (y/n)','coached'], 17), on: reviewCol(['coached on'], 18), by: reviewCol(['coached by'], 19) }; }
+function isReviewCoached(r) { const c = reviewCoachCols(); return msYes(r[c.y]) || !!String(r[c.on]||'').trim() || !!String(r[c.by]||'').trim(); }
+function reviewCoachNote(r) {
+  const c = reviewCoachCols(), by = String(r[c.by]||'').trim(), on = String(r[c.on]||'').trim();
+  return [by ? 'by ' + by : '', on ? 'on ' + on : ''].filter(Boolean).join(' ');
+}
 function buildManagerScorecard() {
   const tb = document.getElementById('msBody'); if (!tb) return;
   const agent = document.getElementById('sbAgent').value;
@@ -627,7 +673,7 @@ function buildManagerScorecard() {
     if (agent && r[C.AGENT]!==agent) return false;
     if (carrier && canonicalCarrier(r[C.CARRIER])!==carrier) return false;
     if (compliance && (r[C.FALSE_CLAIMS]||'').trim().toUpperCase()!==compliance) return false;
-    if (dateFrom||dateTo) { const d=parseDate(r[C.EFF_DATE]); if (!d) return false; if (dateFrom&&d<dateFrom) return false; if (dateTo&&d>dateTo) return false; }
+    if (dateFrom||dateTo) { const d=reviewDate(r); if (!d) return false; if (dateFrom&&d<dateFrom) return false; if (dateTo&&d>dateTo) return false; }
     return true;
   });
   const blank = () => ({ n:0, fault:0, risk:0, ret:0, coached:0, findings:{} });
@@ -720,7 +766,7 @@ function parseDenialDateStr(s) {
   const d = new Date(t); return isNaN(d) ? null : d;
 }
 // One fetch shared by the Overall Summary, the Agent Summary denial columns
-// and the ranking. Rows: { ag, mg, ca, re, er, outcome, effDate }.
+// and the ranking. Rows: { ag, mg, ca, re, er, outcome, effDate, subDate }.
 window.loadDenialsCsv = function() {
   if (window._denialsCsvPromise) return window._denialsCsvPromise;
   window._denialsCsvPromise = fetch(DENIALS_CSV_URL + '?t=' + Date.now())
@@ -731,7 +777,7 @@ window.loadDenialsCsv = function() {
       const h = rows[0].map(x => String(x||'').trim().toLowerCase());
       const col = (...names) => { for (const n of names) { const i = h.findIndex(x => x === n || x.startsWith(n)); if (i >= 0) return i; } return -1; };
       const iA = col('agent name'), iM = col('manager name'), iC = col('carrier'), iR = col('denial reason'),
-            iE = col('agent error'), iO = col('outcome'), iF = col('effective date');
+            iE = col('agent error'), iO = col('outcome'), iF = col('effective date'), iS = col('submission date');
       if (iA < 0 || iO < 0 || iF < 0) throw new Error('denials file is missing Agent Name / Outcome / Effective Date');
       const out = rows.slice(1).map(r => {
         const mg = String(r[iM]||'').trim();
@@ -744,7 +790,8 @@ window.loadDenialsCsv = function() {
           re: iR >= 0 ? String(r[iR]||'').trim() : '',
           er: iE >= 0 ? String(r[iE]||'').trim() : '',
           outcome: String(r[iO]||'').trim(),
-          effDate: parseDenialDateStr(r[iF])
+          effDate: parseDenialDateStr(r[iF]),
+          subDate: iS >= 0 ? parseDenialDateStr(r[iS]) : null
         };
       }).filter(r => r.ag);
       window._denialCsvRows = out;
@@ -761,9 +808,9 @@ window.loadDenialsCsv = function() {
 // Ranked highest first on the Rank-by metric; ties go to more apps, then name.
 // Tiers by position: top 25% High, bottom 25% Low, the rest Watch.
 // Only the period drives the ranking. Manager / Agent / Carrier / Compliance
-// narrow what is shown but never re-rank. Agents under RK_MIN_APPS apps, and
+// narrow what is shown but never re-rank. Agents under the Min apps setting, and
 // agents the roster lists as Termed Agent, are not ranked.
-const RK_MIN_APPS = 10;
+let rkMinApps = 10;   // Min apps selector beside Rank by (default 10+)
 let rkRankBy = 'cd', rkOpen = false, rkResult = { ready: false, ranked: [], tierByKey: {}, notRanked: [] };
 const rkKeyMemo = new Map();
 function rkKey(name) {
@@ -789,12 +836,12 @@ function buildRiskRanking() {
     a.variants.add(rkDisplayName(n));
     return a;
   };
-  asRows.forEach(r => { if (!rkInRange(r.effDate, from, to)) return; const a = get(r.agent, false); if (a) { a.apps++; a.alt = a.alt || r.agent; } });
-  cancelRows.forEach(r => { if (!rkInRange(parseDate(r[CC.EFF_DATE]), from, to)) return; const a = get(r[CC.AGENT], true); if (a) a.cancels++; });
-  dens.forEach(r => { if (!isDenialOutcome(r.outcome) || !rkInRange(r.effDate, from, to)) return; const a = get(r.ag, true); if (a) a.denials++; });
+  asRows.forEach(r => { if (!rkInRange(rowDate(r), from, to)) return; const a = get(r.agent, false); if (a) { a.apps++; a.alt = a.alt || r.agent; } });
+  cancelRows.forEach(r => { if (!rkInRange(cancelDate(r), from, to)) return; const a = get(r[CC.AGENT], true); if (a) a.cancels++; });
+  dens.forEach(r => { if (!isDenialOutcome(r.outcome) || !rkInRange(rowDate(r), from, to)) return; const a = get(r.ag, true); if (a) a.denials++; });
   allRows.forEach(r => {
     if (/^test$/i.test((r[C.FINDINGS]||'').trim())) return;
-    if (!rkInRange(parseDate(r[C.EFF_DATE]), from, to)) return;
+    if (!rkInRange(reviewDate(r), from, to)) return;
     const a = get(r[C.AGENT], true); if (a) a.reviews++;
   });
   const all = Object.values(A).map(a => {
@@ -805,12 +852,12 @@ function buildRiskRanking() {
     a.termed = rosterReady && rosterMgr(rkRosterName(a)) === 'Termed Agent';
     return a;
   });
-  const ranked = all.filter(a => a.apps >= RK_MIN_APPS && !a.termed)
+  const ranked = all.filter(a => a.apps >= rkMinApps && !a.termed)
     .sort((x, y) => y[rkRankBy] - x[rkRankBy] || y.apps - x.apps || x.name.localeCompare(y.name));
   const n = ranked.length, nHigh = Math.ceil(n * 0.25), nLow = Math.ceil(n * 0.25);
   const tierByKey = {};
   ranked.forEach((a, i) => { a.rank = i + 1; a.tier = i < nHigh ? 'High' : (i >= n - nLow ? 'Low' : 'Watch'); tierByKey[a.key] = a.tier; });
-  const notRanked = all.filter(a => (a.apps < RK_MIN_APPS || a.termed) && (a.apps || a.cancels || a.denials));
+  const notRanked = all.filter(a => (a.apps < rkMinApps || a.termed) && (a.apps || a.cancels || a.denials));
   rkResult = { ready: true, ranked, tierByKey, notRanked };
 }
 // The same agent can be spelled differently across sheets ("Rene King" /
@@ -885,7 +932,7 @@ function renderRiskRanking() {
   more.style.display = (tier || (!rkOpen && !hidden)) ? 'none' : 'flex';
   document.getElementById('rkMoreBtn').textContent = rkOpen ? 'Hide Watch and Low risk' : 'Show Watch and Low risk (' + hidden + ')';
   const under = rkResult.notRanked.filter(a => !a.termed).length, termed = rkResult.notRanked.filter(a => a.termed);
-  document.getElementById('rkExcl').textContent = 'Not ranked: ' + under + ' agent' + (under === 1 ? '' : 's') + ' under ' + RK_MIN_APPS + ' apps in the period'
+  document.getElementById('rkExcl').textContent = 'Not ranked: ' + under + ' agent' + (under === 1 ? '' : 's') + (rkMinApps > 1 ? ' under ' + rkMinApps + ' apps in the period' : ' with no apps in the period')
     + (termed.length ? '; ' + termed.length + ' termed (' + termed.slice(0, 6).map(a => a.name).join(', ') + (termed.length > 6 ? ', …' : '') + ')' : '') + '.';
 }
 function setRankBy(k) {
@@ -893,6 +940,7 @@ function setRankBy(k) {
   document.querySelectorAll('#rkRankBy button').forEach(b => b.classList.toggle('on', b.dataset.k === rkRankBy));
   applyFilters();
 }
+function setRiskMinApps(v) { const n = parseInt(v, 10); rkMinApps = isNaN(n) ? 10 : Math.max(1, n); applyFilters(); }
 function toggleRiskMore() { rkOpen = !rkOpen; renderRiskRanking(); }
 function clearRiskTier() { document.getElementById('sbTier').value = ''; applyFilters(); }
 function riskExportRows() {
@@ -1090,7 +1138,7 @@ function updateCancellations() {
   const manager = document.getElementById('sbManager').value;
   // A manager is selected but the roster hasn't loaded yet: can't resolve the mapping.
   if (manager && !rosterReady) { el.textContent = '—'; return; }
-  const dCol = CC.EFF_DATE;
+  const dCol = useAppDate() ? CC.APP_DATE : CC.EFF_DATE;
   const [dateFrom, dateTo] = getDateRange();
   el.textContent = cancelRows.filter(r => {
     if (!tierAllows(r[CC.AGENT])) return false;
@@ -1117,7 +1165,8 @@ function renderTable() {
     tb.innerHTML = pageRows.map(r => {
       const findings = (r[C.FINDINGS]||'').split(',').map(f=>f.trim()).filter(Boolean);
       const nm = (r[C.NEEDS_MISSED]||'').split(',').map(f=>f.trim()).filter(Boolean);
-      const fl = (r[C.FORM_LINK]||'').trim(), al = (r[C.AMS]||'').trim(), fc = (r[C.FALSE_CLAIMS]||'').trim().toUpperCase();
+      const al = (r[C.AMS]||'').trim(), fc = (r[C.FALSE_CLAIMS]||'').trim().toUpperCase();
+      const co = isReviewCoached(r), coNote = reviewCoachNote(r);
       return '<tr>'
         +'<td><div class="td-wrap" title="'+esc(r[C.AGENT])+'">'+esc(r[C.AGENT])+'</div></td>'
         +'<td><div class="td-wrap" title="'+esc(r[C.MANAGER])+'">'+esc(r[C.MANAGER])+'</div></td>'
@@ -1131,7 +1180,7 @@ function renderTable() {
         +'<td class="td-tags">'+(nm.length?nm.map(f=>'<span class="tag tag-orange">'+esc(f)+'</span>').join(''):'—')+'</td>'
         +'<td>'+esc(r[C.RETURNED])+'</td>'
         +'<td style="white-space:normal;min-width:120px">'+esc(r[C.PLAN_SOLD]||'—')+'</td>'
-        +'<td>'+(fl?'<a class="link-btn" href="'+esc(fl)+'" target="_blank" rel="noopener">View &#8599;</a>':'—')+'</td>'
+        +'<td style="text-align:center"'+(coNote?' title="Coached '+esc(coNote)+'"':'')+'>'+(co?'<span class="badge-n">Yes</span>':'<span class="badge-muted">No</span>')+'</td>'
         +'</tr>';
     }).join('');
   }
@@ -1160,7 +1209,7 @@ function buildAgentSummary(rows) {
   // Per-agent cancellation counts from the Cancellations tab, under the same
   // date window + carrier filters, matched to agents by close (fuzzy) name.
   const carrier = document.getElementById('sbCarrier').value;
-  const dCol = CC.EFF_DATE;
+  const dCol = useAppDate() ? CC.APP_DATE : CC.EFF_DATE;
   const [cFrom, cTo] = getDateRange();
   const cancelByKey = {}; // nameKey -> count
   if (cancelLoaded) {
@@ -1204,7 +1253,7 @@ function applyFilters() {
   populateFilters();
   const manager=document.getElementById('sbManager').value, agent=document.getElementById('sbAgent').value;
   const carrier=document.getElementById('sbCarrier').value, compliance=document.getElementById('sbCompliance').value;
-  const dateColIdx = C.EFF_DATE;
+  const dateColIdx = useAppDate() ? C.APP_DATE : C.EFF_DATE;
   const [dateFrom,dateTo] = getDateRange();
   filteredRows = allRows.filter(r => {
     if (!tierAllows(r[C.AGENT])) return false;
@@ -1229,7 +1278,9 @@ function resetFilters() {
 
 function sortBy(col) {
   sortCol===col ? sortAsc=!sortAsc : (sortCol=col, sortAsc=true);
-  filteredRows.sort((a,b) => { const av=(a[col]||'').toLowerCase(), bv=(b[col]||'').toLowerCase(); return sortAsc?av.localeCompare(bv):bv.localeCompare(av); });
+  const ci = HD_COLS[col];
+  const val = r => ci === null ? (isReviewCoached(r) ? 'yes' : 'no') : String(r[ci]||'').toLowerCase();
+  filteredRows.sort((a,b) => { const av=val(a), bv=val(b); return sortAsc?av.localeCompare(bv):bv.localeCompare(av); });
   currentPage = 1; renderTable();
 }
 
@@ -1253,7 +1304,7 @@ function populateFilters() {
 
   const agents = new Set(), managers = new Set();
   asRows.forEach(r => {
-    if (!inRange(r.effDate)) return;
+    if (!inRange(rowDate(r))) return;
     const ag = (r.agent||'').trim(); if (ag) agents.add(ag);
     const mg = canonManager(agentMgr(r.agent)); if (mg) managers.add(mg);
   });
@@ -1261,7 +1312,7 @@ function populateFilters() {
   // Also list every manager on the review rows in range, so a manager who
   // appears in the data can always be selected.
   allRows.forEach(r => {
-    if (!inRange(parseDate(r[C.EFF_DATE]))) return;
+    if (!inRange(reviewDate(r))) return;
     const mg = canonManager(r[C.MANAGER]); if (mg) managers.add(mg);
   });
 
@@ -1368,10 +1419,11 @@ function downloadAgentPDF() {
 }
 
 function downloadReviewsCSV() {
-  const headers = ['Agent','Manager','AMS','App Date','Eff. Date','Carrier','Findings','Needs','Compliance Risk','Needs Missed','Returned?','Plan Sold','Form Link'];
+  const headers = ['Agent','Manager','AMS','App Date','Eff. Date','Carrier','Findings','Needs','Compliance Risk','Needs Missed','Returned?','Plan Sold','Coached','Coached By / On'];
   const rows = filteredRows.map(r => headers.map((h, i) => {
-    const colMap = [C.AGENT,C.MANAGER,C.AMS,C.APP_DATE,C.EFF_DATE,C.CARRIER,C.FINDINGS,C.NEEDS,C.FALSE_CLAIMS,C.NEEDS_MISSED,C.RETURNED,C.PLAN_SOLD,C.FORM_LINK];
-    return '"' + (r[colMap[i]]||'').replace(/"/g,'""') + '"';
+    const colMap = [C.AGENT,C.MANAGER,C.AMS,C.APP_DATE,C.EFF_DATE,C.CARRIER,C.FINDINGS,C.NEEDS,C.FALSE_CLAIMS,C.NEEDS_MISSED,C.RETURNED,C.PLAN_SOLD];
+    const v = i === 12 ? (isReviewCoached(r) ? 'Yes' : 'No') : i === 13 ? reviewCoachNote(r) : (r[colMap[i]]||'');
+    return '"' + String(v).replace(/"/g,'""') + '"';
   }));
   const csv = [headers.map(h=>'"'+h+'"').join(','), ...rows.map(r=>r.join(','))].join('\n');
   triggerDownload(csv, 'text/csv', 'cancellation-reviews.csv');
@@ -1382,9 +1434,9 @@ function downloadReviewsPDF() {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   pdf.setFontSize(13); pdf.setTextColor(26, 39, 68);
   pdf.text('Cancellation Reviews', 40, 40);
-  const headers = [['Agent','Manager','App Date','Eff. Date','Carrier','Findings','Compliance Risk','Returned?','Plan Sold']];
+  const headers = [['Agent','Manager','App Date','Eff. Date','Carrier','Findings','Compliance Risk','Returned?','Plan Sold','Coached']];
   const colMap = [C.AGENT,C.MANAGER,C.APP_DATE,C.EFF_DATE,C.CARRIER,C.FINDINGS,C.FALSE_CLAIMS,C.RETURNED,C.PLAN_SOLD];
-  const rows = filteredRows.map(r => colMap.map(ci => (r[ci]||'').trim()));
+  const rows = filteredRows.map(r => colMap.map(ci => (r[ci]||'').trim()).concat([isReviewCoached(r) ? 'Yes' : 'No']));
   pdf.autoTable({ head: headers, body: rows, startY: 55, styles: { fontSize: 8, overflow: 'linebreak', cellWidth: 'wrap' }, headStyles: { fillColor: [26,39,68] }, alternateRowStyles: { fillColor: [247,249,252] }, columnStyles: { 5: { cellWidth: 100 } } });
   pdf.save('cancellation-reviews.pdf');
 }
@@ -1472,7 +1524,7 @@ function osCellStr(cell) { return String(cell && cell.v || '').trim(); }
 function loadOverallSummaryData() {
   window.loadDenialsCsv()
     .then(rows => {
-      osRows = rows.map(r => ({ agent: r.ag, manager: r.mg, carrier: r.ca, outcome: r.outcome.toLowerCase(), effDate: r.effDate }));
+      osRows = rows.map(r => ({ agent: r.ag, manager: r.mg, carrier: r.ca, outcome: r.outcome.toLowerCase(), effDate: r.effDate, subDate: r.subDate }));
       osLoaded = true;
       if (allRows.length) applyFilters(); else { rkRefresh(); buildOverallSummary(); }
     })
@@ -1488,7 +1540,7 @@ function loadAppsSubmittedData() {
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     .then(t => {
       asRows = ehPoliciesToApps(parseCSV(t))
-        .map(a => ({ agent: a.agent, carrier: a.carrier, effDate: parseDate(a.effDate) }))
+        .map(a => ({ agent: a.agent, carrier: a.carrier, effDate: parseDate(a.effDate), subDate: parseDate(a.submitDate) }))
         .filter(r => r.agent || r.effDate);
       asSource = '10 Day EH Policies';
       asLoaded = true;
@@ -1521,7 +1573,8 @@ function loadAppsSubmittedSheet() {
       }).map(r => ({
         agent: osCellStr(r.c[AS.AGENT]),
         carrier: osCellStr(r.c[AS.CARRIER]),
-        effDate: osCellDate(r.c[AS.EFF_DATE])
+        effDate: osCellDate(r.c[AS.EFF_DATE]),
+        subDate: osCellDate(r.c[AS.SUB_DATE])
       }));
       asSource = 'Apps Submitted sheet (fallback)';
       asLoaded = true;
@@ -1578,6 +1631,8 @@ function buildOverallSummary() {
     return true;
   });
 
+  const osSub = document.getElementById('overallSummarySub');
+  if (osSub) osSub.textContent = '5-month view by ' + (useAppDate() ? 'application' : 'effective') + ' date · not affected by date filter';
   const today = new Date(), y = today.getFullYear(), m = today.getMonth();
   // 6 buckets: one extra month before the window, purely to compute the
   // first displayed month's comparison arrow.
@@ -1589,16 +1644,18 @@ function buildOverallSummary() {
   const stats = monthDefs.map(md => {
     let total=0;
     submittedRows.forEach(r => {
-      if (r.effDate && r.effDate.getFullYear()===md.y && r.effDate.getMonth()===md.m) total++;
+      const d = rowDate(r);
+      if (d && d.getFullYear()===md.y && d.getMonth()===md.m) total++;
     });
     let cancelled=0;
     cancelFilteredRows.forEach(r => {
-      const d = parseDate(r[CC.EFF_DATE]);
+      const d = cancelDate(r);
       if (d && d.getFullYear()===md.y && d.getMonth()===md.m) cancelled++;
     });
     let denied=0;
     denialRows.forEach(r => {
-      if (r.effDate && r.effDate.getFullYear()===md.y && r.effDate.getMonth()===md.m && isDenialOutcome(r.outcome)) denied++;
+      const d = rowDate(r);
+      if (d && d.getFullYear()===md.y && d.getMonth()===md.m && isDenialOutcome(r.outcome)) denied++;
     });
     return {
       total,
@@ -1896,7 +1953,7 @@ loadAppsSubmittedData();
         window._allDenialRows = rows
           .filter(function(r){return isDenialOutcome(r.outcome);})
           .map(function(r){
-            return { ag:r.ag, mg:r.mg, ca:r.ca, re:r.re, er:r.er, subDate:null, effDate:r.effDate };
+            return { ag:r.ag, mg:r.mg, ca:r.ca, re:r.re, er:r.er, subDate:r.subDate, effDate:r.effDate };
           });
       })
       .catch(function(e){console.error('Denials cache error:',e);});
@@ -1919,7 +1976,7 @@ loadAppsSubmittedData();
       if(manager && (typeof canonManager==='function'?canonManager(rmg):rmg)!==manager)            return false;
       if(carrier && (typeof canonicalCarrier==='function'?canonicalCarrier(row.ca):row.ca)!==carrier)  return false;
       if(dateFrom||dateTo){
-        var d=parseDenialDate(row.effDate);
+        var d=parseDenialDate((typeof useAppDate==='function'&&useAppDate())?row.subDate:row.effDate);
         if(!d) return false;
         if(dateFrom&&d<dateFrom) return false;
         if(dateTo  &&d>dateTo)   return false;
